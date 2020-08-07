@@ -61,7 +61,7 @@ jobs:
 
     - name: Custom Configuration & Feeds
       run: |
-        cp $CONFIG_FILE openwrt/.config
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
         cd openwrt
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
