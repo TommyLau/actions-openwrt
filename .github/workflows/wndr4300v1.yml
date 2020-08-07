@@ -60,14 +60,16 @@ jobs:
 
     - name: Custom Configuration & Feeds
       run: |
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
         cd openwrt
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
         cd feeds/packages
         patch -p1 < $GITHUB_WORKSPACE/kcptun.patch
         cd ../..
-        ./scripts/feeds install -a
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
+        ./scripts/feeds install luci-app-ssr-plus
+        ./scripts/feeds install luci-app-passwall
+      if: always()
 
     - name: Download Packages
       run: |
