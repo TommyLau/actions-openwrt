@@ -107,6 +107,7 @@ jobs:
     - name: Download Image Builder
       run: |
         curl -SLO "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-imagebuilder-19.07.3-ar71xx-nand.Linux-x86_64.tar.xz"
+        mkdir -p builder
         tar Jxvf openwrt-imagebuilder-19.07.3-ar71xx-nand.Linux-x86_64.tar.xz -C builder --strip=1
 
     - name: Build Image
