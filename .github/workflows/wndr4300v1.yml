@@ -51,13 +51,8 @@ jobs:
         mkdir -p sdk/staging_dir/host/bin
         ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
 
-    - name: Setup Debug Session
-      uses: csexton/debugger-action@master
-      if: github.event.inputs.ssh == 'true'
-
     - name: Custom Configuration & Feeds
       run: |
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
         cd sdk
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
@@ -67,7 +62,13 @@ jobs:
         ./scripts/feeds install kcptun
         ./scripts/feeds install luci-app-ssr-plus
         ./scripts/feeds install luci-app-passwall
+        cd ..
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
         #sed -i 's/\(disabled=\)1/\10/' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+
+    - name: Setup Debug Session
+      uses: csexton/debugger-action@master
+      if: github.event.inputs.ssh == 'true'
 
     - name: Download Packages
       run: |
