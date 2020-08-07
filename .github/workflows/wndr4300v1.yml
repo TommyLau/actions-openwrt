@@ -54,22 +54,24 @@ jobs:
 
     - name: Clone OpenWrt Source Code
       run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH /openwrt
-        ln -sf /openwrt $GITHUB_WORKSPACE/openwrt
-        mkdir -p /openwrt/staging_dir/host/bin
-        ln -sf /usr/bin/upx /openwrt/staging_dir/host/bin/upx
+        #git clone --depth 1 $REPO_URL -b $REPO_BRANCH /openwrt
+        #ln -sf /openwrt $GITHUB_WORKSPACE/openwrt
+        curl -SL "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-sdk-19.07.3-ar71xx-nand_gcc-7.5.0_musl.Linux-x86_64.tar.xz" -o sdk.tar.xz
+        tar Jxvf sdk.tar.xz -C /openwrt --strip-components=1
+        #mkdir -p /openwrt/staging_dir/host/bin
+        #ln -sf /usr/bin/upx /openwrt/staging_dir/host/bin/upx
 
     - name: Custom Configuration & Feeds
       run: |
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
         cd openwrt
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
         cd feeds/packages
         patch -p1 < $GITHUB_WORKSPACE/kcptun.patch
         cd ../..
-        ./scripts/feeds install package/luci-app-ssr-plus
-        ./scripts/feeds install package/luci-app-passwall
+        ./scripts/feeds install luci-app-ssr-plus
+        ./scripts/feeds install luci-app-passwall
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
 
     - name: Setup Debug Session
       uses: csexton/debugger-action@master
