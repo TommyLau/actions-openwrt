@@ -1,0 +1,567 @@
+diff --git a/net/kcptun/Makefile b/net/kcptun/Makefile
+index b39a11271..31de666d2 100644
+--- a/net/kcptun/Makefile
++++ b/net/kcptun/Makefile
+@@ -1,16 +1,17 @@
+ include $(TOPDIR)/rules.mk
+ 
+ PKG_NAME:=kcptun
+-PKG_VERSION:=20190725
++PKG_VERSION:=20200701
+ PKG_RELEASE:=1
+ 
+ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+ PKG_SOURCE_URL:=https://codeload.github.com/xtaci/kcptun/tar.gz/v${PKG_VERSION}?
+-PKG_HASH:=65c0d0d4f7e3bb3c3b91e23ff2eb6621455d6d376a4f17e6fb2017337ce711c1
++PKG_SOURCE_DATE:=2020-07-01
++PKG_HASH:=d5b2d212c6806f1c4eba5fbce8797734eaa8ae0f8cdd90dd06d0844392888ff0
+ 
+-PKG_MAINTAINER:=Dengfeng Liu <liudf0716@gmail.com>
++PKG_MAINTAINER:=Dengfeng Liu <liudf0716@gmail.com>, Chao Liu <expiron18@gmail.com>
+ PKG_LICENSE:=MIT
+-PKG_LICENSE_FILES:=LICENSE
++PKG_LICENSE_FILES:=LICENSE.md
+ 
+ PKG_BUILD_DEPENDS:=golang/host
+ PKG_BUILD_PARALLEL:=1
+@@ -18,57 +19,59 @@ PKG_USE_MIPS16:=0
+ 
+ GO_PKG:=github.com/xtaci/kcptun
+ 
++GO_PKG_LDFLAGS:=-s -w
++GO_PKG_LDFLAGS_X:=main.VERSION=$(PKG_VERSION)
++
+ include $(INCLUDE_DIR)/package.mk
+ include ../../lang/golang/golang-package.mk
+ 
+-define Package/kcptun/template
++define Package/kcptun-config
+   SECTION:=net
+   CATEGORY:=Network
+   SUBMENU:=Web Servers/Proxies
+-  TITLE:=KCP-based Secure Tunnel 
++  TITLE:=Kcptun Config Scripts
+   URL:=https://github.com/xtaci/kcptun
+   DEPENDS:=$(GO_ARCH_DEPENDS)
+ endef
+ 
+-define Package/kcptun-c
+-  $(call Package/kcptun/template)
+-  TITLE+= (client)
+-endef
+-
+-define Package/kcptun-s
+-  $(call Package/kcptun/template)
+-  TITLE+= (server)
+-endef
+-
+-define Package/kcptun/description
+-  kcptun is a Stable & Secure Tunnel Based On KCP with N:M Multiplexing
+-endef
+-Package/kcptun-c/description = $(Package/kcptun/description)
+-Package/kcptun-s/description = $(Package/kcptun/description)
+-
+-GO_PKG_LDFLAGS_X:=main.VERSION=$(PKG_VERSION)
+-GO_PKG_LDFLAGS:=-s -w
+-
+-define Package/kcptun/install
+-	$(call GoPackage/Package/Install/Bin,$(PKG_INSTALL_DIR))
+-
+-	$(INSTALL_DIR) $(1)/usr/bin/
+-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/$(2) $(1)/usr/bin/$(3)
+-	$(INSTALL_DIR) $(1)/etc/config/
+-	$(INSTALL_CONF) ./files/$(3).conf $(1)/etc/config/$(3)
+-	$(INSTALL_DIR) $(1)/etc/init.d/
+-	$(INSTALL_BIN) ./files/$(3).init $(1)/etc/init.d/$(3)
++define Package/kcptun-config/conffiles
++/etc/config/kcptun
+ endef
+ 
+-define Package/kcptun-c/install
+-  $(call Package/kcptun/install,$(1),client,kcptun-c)
++define Package/kcptun-config/install
++	$(INSTALL_DIR) $(1)/etc/config
++	$(INSTALL_CONF) ./files/kcptun.config $(1)/etc/config/kcptun
++	$(INSTALL_DIR) $(1)/etc/init.d
++	$(INSTALL_BIN) ./files/kcptun.init $(1)/etc/init.d/kcptun
+ endef
+ 
+-define Package/kcptun-s/install
+-  $(call Package/kcptun/install,$(1),server,kcptun-s)
++define Package/kcptun/Default
++  define Package/kcptun-$(1)
++    SECTION:=net
++    CATEGORY:=Network
++    SUBMENU:=Web Servers/Proxies
++    TITLE:=KCP-based Secure Tunnel $(1)
++    URL:=https://github.com/xtaci/kcptun
++    DEPENDS:=+kcptun-config
++  endef
++
++  define Package/kcptun-$(1)/description
++    kcptun is a Stable & Secure Tunnel Based On KCP with N:M Multiplexing.
++This package only contains kcptun $(1).
++  endef
++
++  define Package/kcptun-$(1)/install
++		$$(call GoPackage/Package/Install/Bin,$$(PKG_INSTALL_DIR))
++
++		$$(INSTALL_DIR) $$(1)/usr/bin
++		$$(INSTALL_BIN) $$(PKG_INSTALL_DIR)/usr/bin/$(1) $$(1)/usr/bin/kcptun-$(1)
++  endef
+ endef
+ 
+-$(eval $(call GoBinPackage,kcptun-c))
+-$(eval $(call BuildPackage,kcptun-c))
+-$(eval $(call GoBinPackage,kcptun-s))
+-$(eval $(call BuildPackage,kcptun-s))
++$(eval $(call BuildPackage,kcptun-config))
++KCPTUN_COMPONENTS:=server client
++$(foreach component,$(KCPTUN_COMPONENTS), \
++  $(eval $(call Package/kcptun/Default,$(component))) \
++  $(eval $(call GoBinPackage,kcptun-$(component))) \
++  $(eval $(call BuildPackage,kcptun-$(component))) \
++)
+diff --git a/net/kcptun/README.md b/net/kcptun/README.md
+new file mode 100644
+index 000000000..5faa4e0ae
+--- /dev/null
++++ b/net/kcptun/README.md
+@@ -0,0 +1,54 @@
++# UCI Configuration
++Most option names are the same as those used in json config files: [`server.json`](https://github.com/xtaci/kcptun/blob/master/examples/server.json) and [`local.json`](https://github.com/xtaci/kcptun/blob/master/examples/local.json). Please check `validate_xxx_options` func definition of the [service script](files/kcptun.init) and kcptun's own [documentation](https://github.com/xtaci/kcptun) for supported options and expected value types. And a [sample config file](files/kcptun.config) is also provided for reference.
++
++A `kcptun` config file can contain two types of config section: `server` and `client`, one of which represents a server or client instance. A `server` section can contain one or more options in [Common options](#common-options) and [Server options](#server-options). And a `client` section can contain one or more options in [Common options](#common-options) and [Client options](#client-options).
++
++Every section has a `disabled` option to temporarily turn off the instance.
++
++## [Common options](#common-options)
++| Name | Type | Option | Description |
++| ---- | ---- | ------ | ----------- |
++| disabled | boolean |  | disable current config section when set to 1 (default: 0) |
++| key | string | --key | pre-shared secret between client and server (default: "it's a secrect") |
++| crypt | enum | --crypt | aes, aes-128, aes-192, salsa20, blowfish, twofish, cast5, 3des, tea, xtea, xor, sm4, none (default: "aes") |
++| mode | enum | --mode | profiles: fast3, fast2, fast, normal, manual (default: "fast") |
++| mtu | integer | --mtu | set maximum transmission unit for UDP packets (default: 1350) |
++| sndwnd | integer | --sndwnd | set send window size(num of packets) (default: 1024 for server, 128 for client) |
++| rcvwnd | integer | --rcvwnd | set receive window size(num of packets) (default: 1024 for server, 512 for client) |
++| datashard | integer | --datashard, --ds | set reed-solomon erasure coding - datashard (default: 10) |
++| parityshard | integer | --parityshard, --ps | set reed-solomon erasure coding - parityshard (default: 3) |
++| dscp | integer | --dscp | set DSCP(6bit) (default: 0) |
++| nocomp | boolean | --nocomp | disable compression |
++| sockbuf | integer | --sockbuf | per-socket buffer in bytes (default: 4194304) |
++| smuxver | integer | --smuxver | specify smux version, available 1,2 (default: 1) |
++| smuxbuf | integer | --smuxbuf | the overall de-mux buffer in bytes (default: 4194304) |
++| streambuf | integer | --streambuf | per stream receive buffer in bytes, for smux v2+ (default: 2097152) |
++| keepalive | integer | --keepalive | seconds between heartbeats (default: 10) |
++| snmplog | string | --snmplog | collect snmp to file, aware of timeformat in golang, like: ./snmp-20060102.log |
++| snmpperiod | integer | --snmpperiod | snmp collect period, in seconds (default: 60) |
++| quiet | boolean | --quiet | suppress the 'stream open/close' messages |
++| gogc | integer |  | set GOGC environment variable, see [Memory Control](https://github.com/xtaci/kcptun#memory-control). |
++| syslog | boolean |  | redirect logs to syslog when set to 1, implemented by [procd](https://openwrt.org/docs/guide-developer/procd-init-scripts#service_parameters). (default: 0) |
++| user | string |  | run as another user, implemented by [procd](https://openwrt.org/docs/guide-developer/procd-init-scripts#service_parameters). |
++
++### Limitation
++* As kcptun outputs all logs to stderr by default, you may receive lots of **LOG_ERR** level message when set syslog to 1.
++
++## [Server options](#server-options)
++| Name | Type | Option | Description |
++| ---- | ---- | ------ | ----------- |
++| listen | port number | --listen, -l | kcp server listen port (default: ":29900") |
++| target | host | --target, -t | target server address (default: "127.0.0.1:12948") |
++| target_port | port number | --target, -t | target server port (default: "127.0.0.1:12948") |
++| pprof | boolean | --pprof | start profiling server on :6060 |
++
++## [Client options](#client-options)
++| Name | Type | Option | Description |
++| ---- | ---- | ------ | ----------- |
++| bind_address | IP address | --localaddr, -l | local listen address (default: ":12948") |
++| local_port | port number | --localaddr, -l | local listen port (default: ":12948") |
++| server | host | --remoteaddr, -r | kcp server address (default: "vps:29900") |
++| server_port | port number | --remoteaddr, -r | kcp server port (default: "vps:29900") |
++| conn | integer | --conn | set num of UDP connections to server (default: 1) |
++| autoexpire | integer | --autoexpire | set auto expiration time(in seconds) for a single UDP connection, 0 to disable (default: 0) |
++| scavengettl | integer | --scavengettl | set how long an expired connection can live(in sec), -1 to disable (default: 600) |
+diff --git a/net/kcptun/files/kcptun-c.conf b/net/kcptun/files/kcptun-c.conf
+deleted file mode 100644
+index adef9e3ea..000000000
+--- a/net/kcptun/files/kcptun-c.conf
++++ /dev/null
+@@ -1,9 +0,0 @@
+-config kcptun
+-	option local_port 12948 # this port should be your service port
+-	option remote_ip 'your vps ip'
+-	option remote_port 29900 
+-	option mode 'fast'
+-	option nocomp 1
+-	option sndwnd 128
+-	option rcvwnd 512
+-	option disabled 1 # set 0 to enable it
+diff --git a/net/kcptun/files/kcptun-c.init b/net/kcptun/files/kcptun-c.init
+deleted file mode 100644
+index 653d8d817..000000000
+--- a/net/kcptun/files/kcptun-c.init
++++ /dev/null
+@@ -1,56 +0,0 @@
+-#!/bin/sh /etc/rc.common
+-# Copyright (C) 2019 Dengfeng Liu
+-
+-START=99
+-
+-USE_PROCD=1
+-NAME=kcptun-c
+-PROG=/usr/bin/${NAME}
+-
+-validate_section_kcptun() 
+-{
+-	uci_load_validate "${NAME}" kcptun "$1" "$2" \
+-		'local_port:port' \
+-		'remote_ip:string' \
+-		'remote_port:port' \
+-		'mode:string' \
+-		'nocomp:bool' \
+-		'sndwnd:uinteger' \
+-		'rcvwnd:uinteger' \
+-		'disabled:bool'
+-}
+-
+-kcptun_instance() 
+-{
+-	[ "$2" = 0 ] || {
+-		echo "validation failed"
+-		return 1
+-	}
+-
+-	[ "${disabled}" = "1" ] && return 1
+-
+-	[ "${local_port}" -gt 0 ] && [ "${local_port}" -lt 65536 ] || return 1
+-
+-	[ "${remote_port}" -gt 0 ] && [ "${remote_port}" -lt 65536 ] || return 1
+-
+-	[ -n "${remote_ip}" ] || {
+-		return 1
+-	}
+-
+-	procd_open_instance
+-	procd_set_param command "${PROG}"
+-	procd_append_param command --localaddr ":${local_port}"
+-	procd_append_param command --remoteaddr "${remote_ip}:${remote_port}"
+-	[ -n "${mode}" ] && procd_append_param command --mode "${mode}"
+-	[ "${nocomp}" -eq 1 ] && procd_append_param command --nocomp
+-	[ "${sndwnd}" -gt 0 ] && procd_append_param command --sndwnd "${sndwnd}"
+-	[ "${rcvwnd}" -gt 0 ] && procd_append_param command --rcvwnd "${rcvwnd}"
+-	procd_set_param respawn
+-	procd_close_instance
+-}
+-
+-start_service() 
+-{
+-	config_load "${NAME}"
+-	config_foreach validate_section_kcptun kcptun kcptun_instance
+-}
+diff --git a/net/kcptun/files/kcptun-s.conf b/net/kcptun/files/kcptun-s.conf
+deleted file mode 100644
+index 3537f64b5..000000000
+--- a/net/kcptun/files/kcptun-s.conf
++++ /dev/null
+@@ -1,9 +0,0 @@
+-config kcptun
+-	option local_port 29900
+-	option target_ip '127.0.0.1'
+-	option target_port 12948 # this port should be your service port
+-	option mode 'fast'
+-	option nocomp 1
+-	option sndwnd 1024
+-	option rcvwnd 1024
+-	option disabled 1 # set 0 to enable it
+diff --git a/net/kcptun/files/kcptun-s.init b/net/kcptun/files/kcptun-s.init
+deleted file mode 100644
+index cfcb81add..000000000
+--- a/net/kcptun/files/kcptun-s.init
++++ /dev/null
+@@ -1,56 +0,0 @@
+-#!/bin/sh /etc/rc.common
+-# Copyright (C) 2019 Dengfeng Liu
+-
+-START=99
+-
+-USE_PROCD=1
+-NAME=kcptun-s
+-PROG=/usr/bin/${NAME}
+-
+-validate_section_kcptun() 
+-{
+-	uci_load_validate "${NAME}" kcptun "$1" "$2" \
+-		'local_port:port' \
+-		'target_ip:string' \
+-		'target_port:port' \
+-		'mode:string' \
+-		'nocomp:bool' \
+-		'sndwnd:uinteger' \
+-		'rcvwnd:uinteger' \
+-		'disabled:bool'
+-}
+-
+-kcptun_instance() 
+-{
+-	[ "$2" = 0 ] || {
+-		echo "validation failed"
+-		return 1
+-	}
+-
+-	[ "${disabled}" = "1" ] && return 1
+-
+-	[ "${local_port}" -gt 0 ] && [ "${local_port}" -lt 65536 ] || return 1
+-
+-	[ "${target_port}" -gt 0 ] && [ "${target_port}" -lt 65536 ] || return 1
+-	
+-	[ -n "${target_ip}" ] || {
+-		return 1
+-	}
+-
+-	procd_open_instance
+-	procd_set_param command "${PROG}"
+-	procd_append_param command --listen ":${local_port}"
+-	procd_append_param command --target "${target_ip}:${target_port}"
+-	[ -n "${mode}" ] && procd_append_param command --mode "${mode}"
+-	[ "${nocomp}" -eq 1 ] && procd_append_param command --nocomp
+-	[ "${sndwnd}" -gt 0 ] && procd_append_param command --sndwnd "${sndwnd}"
+-	[ "${rcvwnd}" -gt 0 ] && procd_append_param command --rcvwnd "${rcvwnd}"
+-	procd_set_param respawn
+-	procd_close_instance
+-}
+-
+-start_service() 
+-{
+-	config_load "${NAME}"
+-	config_foreach validate_section_kcptun kcptun kcptun_instance
+-}
+diff --git a/net/kcptun/files/kcptun.config b/net/kcptun/files/kcptun.config
+new file mode 100644
+index 000000000..06000b478
+--- /dev/null
++++ b/net/kcptun/files/kcptun.config
+@@ -0,0 +1,43 @@
++config server
++	option disabled 1
++	option listen 29900
++	option target '127.0.0.1'
++	option target_port 12948
++	option crypt 'aes'
++	option key 'secret'
++	option mode 'fast'
++	option datashard 10
++	option parityshard 3
++	option dscp 46
++	option nocomp 1
++	option snmplog '/var/log/snmp.log'
++	option snmpperiod 60
++	option pprof 1
++	option quiet 1
++	option syslog 1
++	option user nobody
++
++config client
++	option disabled 1
++	option bind_address '0.0.0.0'
++	option local_port 12948
++	option server 'vps'
++	option server_port 29900
++	option crypt 'aes'
++	option key 'secret'
++	option mode 'fast'
++	option conn 1
++	option autoexpire 0
++	option scavengettl 600
++	option mtu 1350
++	option sndwnd 128
++	option rcvwnd 512
++	option nocomp 1
++	option sockbuf 4194304
++	option smuxver 1
++	option smuxbuf 4194304
++	option streambuf 2097152
++	option keepalive 10
++	option quiet 1
++	option gogc 20
++	option user nobody
+diff --git a/net/kcptun/files/kcptun.init b/net/kcptun/files/kcptun.init
+new file mode 100644
+index 000000000..b22f8504a
+--- /dev/null
++++ b/net/kcptun/files/kcptun.init
+@@ -0,0 +1,174 @@
++#!/bin/sh /etc/rc.common
++#
++# Copyright (C) 2019 Chao Liu <expiron18@gmail.com>
++#
++# This is free software, licensed under the GNU General Public License v3.
++# See /LICENSE for more information.
++#
++
++USE_PROCD=1
++START=99
++
++confdir=/var/etc/kcptun
++bindir=/usr/bin
++
++mkjson_server_conf() {
++	[ "$disabled" = 0 ] || return 1
++	[ -n "$listen" ] || return 1
++	[ -n "$target" ] || return 1
++	[ -n "$target_port" ] || return 1
++	json_add_string listen ":$listen"
++	json_add_string target "$target:$target_port"
++	json_add_boolean pprof "$pprof"
++}
++
++mkjson_client_conf() {
++	[ "$disabled" = 0 ] || return 1
++	[ -n "$local_port" ] || return 1
++	[ -n "$server" ] || return 1
++	[ -n "$server_port" ] || return 1
++	json_add_string localaddr "$bind_address:$local_port"
++	json_add_string remoteaddr "$server:$server_port"
++	[ -z "$conn" ] || json_add_int conn "$conn"
++	[ -z "$autoexpire" ] || json_add_int autoexpire "$autoexpire"
++	[ -z "$scavengettl" ] || json_add_int scavengettl "$scavengettl"
++}
++
++kcptun() {
++	local cfg="$1"
++	local cfgtype="$2"
++	local bin="$bindir/kcptun-$cfgtype"
++	local confjson="$confdir/$cfgtype.$cfg.json"
++
++	[ -x "$bin" ] || return
++	eval "$("validate_${cfgtype}_section" "$cfg" validate_mklocal)"
++	"validate_${cfgtype}_section" "$cfg" || return
++	[ "$disabled" = 0 ] || return
++
++	json_init
++	mkjson_${cfgtype}_conf || return
++	[ -z "$crypt" ] || json_add_string crypt "$crypt"
++	[ -z "$key" ] || json_add_string key "$key"
++	[ -z "$mode" ] || json_add_string mode "$mode"
++	[ -z "$mtu" ] || json_add_int mtu "$mtu"
++	[ -z "$sndwnd" ] || json_add_int sndwnd "$sndwnd"
++	[ -z "$rcvwnd" ] || json_add_int rcvwnd "$rcvwnd"
++	[ -z "$datashard" ] || json_add_int datashard "$datashard"
++	[ -z "$parityshard" ] || json_add_int parityshard "$parityshard"
++	[ -z "$dscp" ] || json_add_int dscp "$dscp"
++	json_add_boolean nocomp "$nocomp"
++	[ -z "$sockbuf" ] || json_add_int sockbuf "$sockbuf"
++	[ -z "$smuxver" ] || json_add_int smuxver "$smuxver"
++	[ -z "$smuxbuf" ] || json_add_int smuxbuf "$smuxbuf"
++	[ -z "$streambuf" ] || json_add_int streambuf "$streambuf"
++	[ -z "$keepalive" ] || json_add_int keepalive "$keepalive"
++	[ -z "$snmplog" ] || json_add_string snmplog "$snmplog"
++	[ -z "$snmpperiod" ] || json_add_int snmpperiod "$snmpperiod"
++	json_add_boolean quiet "$quiet"
++	json_dump -i > "$confjson"
++
++	procd_open_instance "$cfgtype.$cfg"
++	procd_set_param command "$bin" -c "$confjson"
++	[ -z "$gogc" ] || procd_set_param env GOGC="$gogc"
++	[ -z "$syslog" ] || procd_set_param stderr 1
++	[ -z "$user" ] || procd_set_param user "$user"
++	procd_set_param file "$confjson"
++	procd_set_param respawn
++	procd_close_instance
++}
++
++start_service() {
++	local cfgtype
++
++	mkdir -p "$confdir"
++	config_load kcptun
++	for cfgtype in server client; do
++		config_foreach kcptun "$cfgtype" "$cfgtype"
++	done
++}
++
++stop_service() {
++	rm -rf "$confdir"
++}
++
++service_triggers() {
++	procd_add_reload_interface_trigger wan
++	procd_add_reload_trigger kcptun
++	procd_open_validate
++	validate_server_section
++	validate_client_section
++	procd_close_validate
++}
++
++validate_mklocal() {
++	local tuple opts
++
++	shift 2
++	for tuple in "$@"; do
++		opts="${tuple%%:*} $opts"
++	done
++	[ -z "$opts" ] || echo "local $opts"
++}
++
++validate() {
++	uci_validate_section kcptun "$@"
++}
++
++validate_common_options() {
++	local cfgtype="$1"; shift
++	local cfg="$1"; shift
++	local func="$1"; shift
++	local crypt_methods='"aes", "aes-128", "aes-192", "salsa20", "blowfish", "twofish", "cast5", "3des", "tea", "xtea", "xor", "sm4", "none"'
++	local mode_profiles='"fast3", "fast2", "fast", "normal", "manual"'
++
++	"${func:-validate}" "$cfgtype" "$cfg" "$@" \
++		'disabled:bool:0' \
++		'key:string' \
++		"crypt:or($crypt_methods)" \
++		"mode:or($mode_profiles)" \
++		'mtu:uinteger' \
++		'sndwnd:uinteger' \
++		'rcvwnd:uinteger' \
++		'datashard:uinteger' \
++		'parityshard:uinteger' \
++		'dscp:uinteger' \
++		'nocomp:bool' \
++		'sockbuf:uinteger' \
++		'smuxver:uinteger' \
++		'smuxbuf:uinteger' \
++		'streambuf:uinteger' \
++		'keepalive:uinteger' \
++		'snmplog:string' \
++		'snmpperiod:uinteger' \
++		'quiet:bool' \
++		'gogc:uinteger' \
++		'syslog:bool:1' \
++		'user:string:nobody'
++}
++
++validate_server_options() {
++	validate_common_options server "$@" \
++		'listen:port' \
++		'target:host' \
++		'target_port:port' \
++		'pprof:bool'
++}
++
++validate_client_options() {
++	validate_common_options client "$@" \
++		'bind_address:ipaddr' \
++		'local_port:port' \
++		'server:host' \
++		'server_port:port' \
++		'conn:uinteger' \
++		'autoexpire:uinteger' \
++		'scavengettl:uinteger'
++}
++
++validate_server_section() {
++	validate_server_options "$1" "$2"
++}
++
++validate_client_section() {
++	validate_client_options "$1" "$2"
++}
