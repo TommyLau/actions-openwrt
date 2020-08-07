@@ -54,6 +54,10 @@ jobs:
         #mkdir -p openwrt/staging_dir/host/bin
         #ln -sf /usr/bin/upx openwrt/staging_dir/host/bin/upx
 
+    - name: Setup Debug Session
+      uses: csexton/debugger-action@master
+      if: github.event.inputs.ssh == 'true'
+
     - name: Custom Configuration & Feeds
       run: |
         cd openwrt
@@ -64,10 +68,6 @@ jobs:
         cd ../..
         ./scripts/feeds install -a
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
-
-    - name: Setup Debug Session
-      uses: csexton/debugger-action@master
-      if: github.event.inputs.ssh == 'true'
 
     - name: Download Packages
       run: |
