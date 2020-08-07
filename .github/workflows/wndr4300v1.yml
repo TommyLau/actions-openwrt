@@ -62,8 +62,7 @@ jobs:
         cd feeds/packages
         patch -p1 < $GITHUB_WORKSPACE/kcptun.patch
         cd ../..
-        ./scripts/feeds install luci-app-ssr-plus
-        ./scripts/feeds install luci-app-passwall
+        ./scripts/feeds install -a
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
 
     - name: Setup Debug Session
