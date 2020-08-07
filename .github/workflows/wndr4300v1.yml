@@ -20,8 +20,6 @@ on:
       - 'wndr4300v1.config'
 
 env:
-  REPO_URL: https://git.openwrt.org/openwrt/openwrt.git
-  REPO_BRANCH: v19.07.3
   CONFIG_FILE: wndr4300v1.config
   TIMEZONE: Asia/Shanghai
 
@@ -45,14 +43,13 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TIMEZONE"
 
-    - name: Clone OpenWrt Source Code
+    - name: Setup OpenWrt SDK
       run: |
-        #git clone --depth 1 $REPO_URL -b $REPO_BRANCH /openwrt
-        mkdir openwrt
+        mkdir sdk
         curl -SL "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-sdk-19.07.3-ar71xx-nand_gcc-7.5.0_musl.Linux-x86_64.tar.xz" -o sdk.tar.xz
-        tar Jxvf sdk.tar.xz -C openwrt --strip-components=1
-        #mkdir -p openwrt/staging_dir/host/bin
-        ln -sf /usr/bin/upx openwrt/staging_dir/host/bin/upx
+        tar Jxvf sdk.tar.xz -C sdk --strip-components=1
+        mkdir -p sdk/staging_dir/host/bin
+        ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
 
     - name: Setup Debug Session
       uses: csexton/debugger-action@master
@@ -60,8 +57,8 @@ jobs:
 
     - name: Custom Configuration & Feeds
       run: |
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
-        cd openwrt
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
+        cd sdk
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
         cd feeds/packages
@@ -71,38 +68,23 @@ jobs:
         ./scripts/feeds install luci-app-ssr-plus
         ./scripts/feeds install luci-app-passwall
         #sed -i 's/\(disabled=\)1/\10/' package/kernel/mac80211/files/lib/wifi/mac80211.sh
-      if: always()
 
     - name: Download Packages
       run: |
-        cd openwrt
+        cd sdk
         make defconfig
         make download -j8
         find dl -size -1024c -exec rm -fv {} \;
 
-    - name: Compile Tools
+    - name: Build Custom Packages
       run: |
-        cd openwrt
-        make tools/install -j$(nproc)
-
-    - name: Compile Toolchain
-      run: |
-        cd openwrt
-        make toolchain/install -j$(nproc)
-
-    - name: Compile Firmware
-      run: |
-        cd openwrt
+        cd sdk
         make -j$(nproc) || make -j1 V=s || make -j1 V=sc
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "::set-env name=DEVICE_NAME::_$(cat DEVICE_NAME)"
         echo "::set-env name=FILE_DATE::_$(date +"%Y%m%d%H%M")"
 
-    - name: Space Usage
-      if: (!cancelled())
-      run: df -hT
-
-    - name: Download Image Builder
+    - name: Setup OpenWrt Image Builder
       run: |
         curl -SLO "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-imagebuilder-19.07.3-ar71xx-nand.Linux-x86_64.tar.xz"
         mkdir -p builder
@@ -111,8 +93,8 @@ jobs:
     - name: Build Image
       run: |
         mkdir -p packages
-        cp openwrt/bin/packages/mips_24kc/packages/kcptun*.ipk packages
-        cp openwrt/bin/packages/mips_24kc/tommy/*.ipk packages
+        cp sdk/bin/packages/mips_24kc/packages/kcptun*.ipk packages
+        cp sdk/bin/packages/mips_24kc/tommy/*.ipk packages
         mkdir -p builder/packages
         cp -v packages/* builder/packages
         cd builder
@@ -120,6 +102,10 @@ jobs:
         make image PROFILE=WNDR4300V1 PACKAGES="acme-dnsapi bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg -dnsmasq"
         cd bin/targets/*/*
         echo "::set-env name=FIRMWARE::$PWD"
+
+    - name: Space Usage
+      if: (!cancelled())
+      run: df -hT
 
     - name: Upload Firmware
       uses: actions/upload-artifact@v2
