@@ -17,9 +17,10 @@ on:
     branches:
       - master
     paths:
-      - 'wndr4300v1.config'
+      - wndr4300v1.config
 
 env:
+  DEVICE_NAME: WNDR4300v1
   CONFIG_FILE: wndr4300v1.config
   TIMEZONE: Asia/Shanghai
 
@@ -81,9 +82,7 @@ jobs:
       run: |
         cd sdk
         make -j$(nproc) || make -j1 V=s || make -j1 V=sc
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
-        [ -s DEVICE_NAME ] && echo "::set-env name=DEVICE_NAME::_$(cat DEVICE_NAME)"
-        echo "::set-env name=FILE_DATE::_$(date +"%Y%m%d%H%M")"
+        echo "::set-env name=BUILD_TIME::_$(date +"%Y%m%d%H%M")"
 
     - name: Setup OpenWrt Image Builder
       run: |
@@ -101,8 +100,6 @@ jobs:
         cd builder
         sed -i s/'23552k(ubi),25600k@0x6c0000(firmware)'/'120832k(ubi),122880k@0x6c0000(firmware)'/ target/linux/ar71xx/image/legacy.mk
         make image PROFILE=WNDR4300V1 PACKAGES="acme-dnsapi bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg -dnsmasq"
-        cd bin/targets/*/*
-        echo "::set-env name=FIRMWARE::$PWD"
 
     - name: Space Usage
       if: (!cancelled())
@@ -111,11 +108,13 @@ jobs:
     - name: Upload Firmware
       uses: actions/upload-artifact@v2
       with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE }}
+        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        path: |
+          builder/bin/targets/*/*/*.img
+          builder/bin/targets/*/*/*.tar
 
     - name: Upload Packages
       uses: actions/upload-artifact@v2
       with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_Packages_${{ env.FILE_DATE }}
+        name: OpenWrt_${{ env.DEVICE_NAME }}_Packages_${{ env.BUILD_TIME }}
         path: packages
