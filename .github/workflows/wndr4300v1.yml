@@ -50,9 +50,9 @@ jobs:
         sudo -E apt-get -qq autoremove --purge
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TIMEZONE"
-        echo "::set-env name=OPENWRT_URL::$(echo "$OPENWRT_URL")"
-        echo "::set-env name=SDK_URL::$(echo "$SDK_URL")"
-        echo "::set-env name=BUILDER_URL::$(echo "$BUILDER_URL")"
+        echo "::set-env name=OPENWRT_URL::$(eval echo "$OPENWRT_URL")"
+        echo "::set-env name=SDK_URL::$(eval echo "$SDK_URL")"
+        echo "::set-env name=BUILDER_URL::$(eval echo "$BUILDER_URL")"
 
     - name: Setup OpenWrt SDK
       run: |
