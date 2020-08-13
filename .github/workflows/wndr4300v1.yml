@@ -21,7 +21,7 @@ on:
       - '.github/workflows/wndr4300v1.yml'
 
 env:
-  DEVICE_NAME: WNDR4300v1
+  DEVICE_NAME: WNDR4300V1
   DEVICE_TARGET: ar71xx
   DEVICE_SUB_TARGET: nand
   CONFIG_FILE: wndr4300v1.config
@@ -42,7 +42,7 @@ jobs:
 
     - name: Setup Build Environment
       env:
-        debian_frontend: noninteractive
+        DEBIAN_FRONTEND: noninteractive
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
@@ -111,7 +111,7 @@ jobs:
         cp -v packages/* builder/packages
         cd builder
         sed -i s/'23552k(ubi),25600k@0x6c0000(firmware)'/'120832k(ubi),122880k@0x6c0000(firmware)'/ target/linux/ar71xx/image/legacy.mk
-        make image PROFILE=WNDR4300V1 PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg luci-proto-wireguard vxlan -dnsmasq"
+        make image PROFILE=${{ env.DEVICE_NAME }} PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg luci-proto-wireguard vxlan -dnsmasq"
         cd bin/targets/*/*
         echo "::set-env name=FIRMWARE_PATH::$PWD"
 
