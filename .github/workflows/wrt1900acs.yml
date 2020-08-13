@@ -1,0 +1,133 @@
+#
+# Copyright (c) 2020 Tommy Lau <http://tommy.net.cn/>
+#
+# https://github.com/TommyLau/actions-openwrt
+# Description: Build OpenWrt image with GitHub Actions
+#
+
+name: Build WRT1900ACS Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Access to SSH terminal'
+        default: 'true'
+  push:
+    branches:
+      - master
+    paths:
+      - 'wrt1900acs.config'
+      - '.github/workflows/wrt1900acs.yml'
+
+env:
+  DEVICE_NAME: WRT1900ACS
+  DEVICE_TARGET: mvebu
+  DEVICE_SUB_TARGET: cortexa9
+  CONFIG_FILE: wrt1900acs.config
+  OPENWRT_VERSION: 19.07.3
+  OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-7.5.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
+  TIMEZONE: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Build Environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TIMEZONE"
+        OPENWRT_URL=`eval echo "$OPENWRT_URL"`
+        SDK_URL=`eval echo "$SDK_URL"`
+        BUILDER_URL=`eval echo "$BUILDER_URL"`
+        echo "::set-env name=OPENWRT_URL::$OPENWRT_URL"
+        echo "::set-env name=SDK_URL::$SDK_URL"
+        echo "::set-env name=BUILDER_URL::$BUILDER_URL"
+
+    - name: Setup OpenWrt SDK
+      run: |
+        curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
+        mkdir sdk
+        tar Jxvf sdk.tar.xz -C sdk --strip-components=1
+        mkdir -p sdk/staging_dir/host/bin
+        ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
+
+    - name: Custom Configuration & Feeds
+      run: |
+        cd sdk
+        sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
+        ./scripts/feeds update -a
+        cd feeds/packages
+        patch -p1 < $GITHUB_WORKSPACE/kcptun.patch
+        cd ../..
+        ./scripts/feeds install kcptun
+        ./scripts/feeds install luci-app-ssr-plus
+        ./scripts/feeds install luci-app-passwall
+        cd ..
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
+
+    - name: Setup Debug Session
+      uses: csexton/debugger-action@master
+      if: github.event.inputs.ssh == 'true'
+
+    - name: Download Packages
+      run: |
+        cd sdk
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec rm -fv {} \;
+
+    - name: Build Custom Packages
+      run: |
+        cd sdk
+        make -j$(nproc) || make -j1 V=s || make -j1 V=sc
+        echo "::set-env name=BUILD_TIME::$(date +"%Y%m%d%H%M")"
+
+    - name: Setup OpenWrt Image Builder
+      run: |
+        curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
+        mkdir builder
+        tar Jxvf builder.tar.xz -C builder --strip-components=1
+
+    - name: Build Image
+      run: |
+        mkdir -p packages
+        cp sdk/bin/packages/mips_24kc/packages/kcptun*.ipk packages
+        cp sdk/bin/packages/mips_24kc/tommy/*.ipk packages
+        mkdir -p builder/packages
+        cp -v packages/* builder/packages
+        cd builder
+        make image PROFILE=${{ env.DEVICE_NAME }} PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg luci-proto-wireguard vxlan -dnsmasq"
+        cd bin/targets/*/*
+        echo "::set-env name=FIRMWARE_PATH::$PWD"
+
+    - name: Space Usage
+      if: (!cancelled())
+      run: df -hT
+
+    - name: Upload Firmware
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        path: |
+          ${{ env.FIRMWARE_PATH }}/*.img
+          ${{ env.FIRMWARE_PATH }}/*.tar
+
+    - name: Upload Packages
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_${{ env.DEVICE_NAME }}_Packages_${{ env.BUILD_TIME }}
+        path: packages
