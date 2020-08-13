@@ -22,7 +22,13 @@ on:
 
 env:
   DEVICE_NAME: WNDR4300v1
+  DEVICE_TARGET: ar71xx
+  DEVICE_SUB_TARGET: nand
   CONFIG_FILE: wndr4300v1.config
+  OPENWRT_VERSION: 19.07.3
+  OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-7.5.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${OPENWRT_VERSION}-${OPENWRT_TARGET}-${OPENWRT_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
 jobs:
@@ -47,8 +53,8 @@ jobs:
 
     - name: Setup OpenWrt SDK
       run: |
+        curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
         mkdir sdk
-        curl -SL "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-sdk-19.07.3-ar71xx-nand_gcc-7.5.0_musl.Linux-x86_64.tar.xz" -o sdk.tar.xz
         tar Jxvf sdk.tar.xz -C sdk --strip-components=1
         mkdir -p sdk/staging_dir/host/bin
         ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
@@ -66,7 +72,6 @@ jobs:
         ./scripts/feeds install luci-app-passwall
         cd ..
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
-        #sed -i 's/\(disabled=\)1/\10/' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
     - name: Setup Debug Session
       uses: csexton/debugger-action@master
@@ -83,13 +88,13 @@ jobs:
       run: |
         cd sdk
         make -j$(nproc) || make -j1 V=s || make -j1 V=sc
-        echo "::set-env name=BUILD_TIME::_$(date +"%Y%m%d%H%M")"
+        echo "::set-env name=BUILD_TIME::$(date +"%Y%m%d%H%M")"
 
     - name: Setup OpenWrt Image Builder
       run: |
-        curl -SLO "https://downloads.openwrt.org/releases/19.07.3/targets/ar71xx/nand/openwrt-imagebuilder-19.07.3-ar71xx-nand.Linux-x86_64.tar.xz"
-        mkdir -p builder
-        tar Jxvf openwrt-imagebuilder-19.07.3-ar71xx-nand.Linux-x86_64.tar.xz -C builder --strip=1
+        curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
+        mkdir builder
+        tar Jxvf builder.tar.xz -C builder --strip-components=1
 
     - name: Build Image
       run: |
