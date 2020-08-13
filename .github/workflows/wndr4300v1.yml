@@ -45,10 +45,10 @@ jobs:
         debian_frontend: noninteractive
       run: |
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -e apt-get -qq update
-        sudo -e apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx
-        sudo -e apt-get -qq autoremove --purge
-        sudo -e apt-get -qq clean
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TIMEZONE"
         echo "::set-env name=OPENWRT_URL::$(echo "$OPENWRT_URL")"
         echo "::set-env name=SDK_URL::$(echo "$SDK_URL")"
