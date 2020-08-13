@@ -5,7 +5,7 @@
 # Description: Build OpenWrt image with GitHub Actions
 #
 
-name: Build WRT1900ACS Image
+name: Build EA7500 V1 Image
 
 on:
   workflow_dispatch:
