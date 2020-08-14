@@ -5,7 +5,7 @@
 # Description: Build OpenWrt image with GitHub Actions
 #
 
-name: Build EA7500 V1 Image
+name: Build EA7500v1 Image
 
 on:
   workflow_dispatch:
@@ -69,11 +69,14 @@ jobs:
     - name: Custom Configuration & Feeds
       run: |
         cd sdk
-        cd package
-        git clone https://github.com/maxlicheng/luci-app-unblockmusic.git
-        cd ..
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
+        cd package/feeds/tommy
+        git clone https://github.com/maxlicheng/luci-app-unblockmusic.git
+        cd ../../..
+        ./scripts/feeds install luci-app-ssr-plus
+        ./scripts/feeds install luci-app-passwall
+        ./scripts/feeds install luci-app-unblockmusic
         cd ..
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
 
