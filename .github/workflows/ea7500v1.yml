@@ -17,14 +17,15 @@ on:
     branches:
       - master
     paths:
-      - 'ea7500-v1.config'
-      - '.github/workflows/ea7500-v1.yml'
+      - 'ea7500v1.config'
+      - '.github/workflows/ea7500v1.yml'
 
 env:
-  DEVICE_NAME: EA7500-V1
+  DEVICE_NAME: EA7500v1
+  PROFILE: linksys_ea7500-v1
   DEVICE_TARGET: ipq806x
   DEVICE_SUB_TARGET: generic
-  CONFIG_FILE: ea7500-v1.config
+  CONFIG_FILE: ea7500v1.config
   OPENWRT_VERSION: 19.07.4
   OPENWRT_URL: "https://downloads.openwrt.org/snapshots/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
   SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-8.4.0_musl_eabi.Linux-x86_64.tar.xz"
@@ -101,11 +102,11 @@ jobs:
     - name: Build Image
       run: |
         mkdir -p packages
-        cp sdk/bin/packages/mips_24kc/tommy/*.ipk packages
+        cp sdk/bin/packages/*/tommy/*.ipk packages
         mkdir -p builder/packages
         cp -v packages/* builder/packages
         cd builder
-        make image PROFILE=${{ env.DEVICE_NAME }} PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg luci-proto-wireguard vxlan -dnsmasq"
+        make image PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-ssr-plus luci-app-unbound luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg luci-proto-wireguard vxlan -dnsmasq"
         cd bin/targets/*/*
         echo "::set-env name=FIRMWARE_PATH::$PWD"
 
