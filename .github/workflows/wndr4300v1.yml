@@ -106,8 +106,8 @@ jobs:
     - name: Build Image
       run: |
         mkdir -p packages
-        cp sdk/bin/packages/mips_24kc/packages/kcptun*.ipk packages
-        cp sdk/bin/packages/mips_24kc/tommy/*.ipk packages
+        cp sdk/bin/packages/*/packages/kcptun*.ipk packages
+        cp sdk/bin/packages/*/tommy/*.ipk packages
         mkdir -p builder/packages
         cp -v packages/* builder/packages
         cd builder
