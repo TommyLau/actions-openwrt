@@ -71,9 +71,9 @@ jobs:
         cd sdk
         sed -i '$a src-git tommy https://github.com/TommyLau/openwrt-packages' feeds.conf.default
         ./scripts/feeds update -a
-        cd package/feeds/tommy
+        cd feeds/tommy
         git clone https://github.com/maxlicheng/luci-app-unblockmusic.git
-        cd ../../..
+        cd ../..
         ./scripts/feeds install luci-app-ssr-plus
         ./scripts/feeds install luci-app-passwall
         ./scripts/feeds install luci-app-unblockmusic
