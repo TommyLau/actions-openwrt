@@ -118,9 +118,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
-        path: |
-          ${{ env.FIRMWARE_PATH }}/*.img
-          ${{ env.FIRMWARE_PATH }}/*.tar
+        path: ${{ env.FIRMWARE_PATH }}/*.bin
 
     - name: Upload Packages
       uses: actions/upload-artifact@v2
