@@ -108,6 +108,7 @@ jobs:
     - name: Build Image
       run: |
         mkdir -p packages
+        cp sdk/bin/packages/*/packages/boost*.ipk packages
         cp sdk/bin/packages/*/tommy/*.ipk packages
         mkdir -p builder/packages
         cp -v packages/* builder/packages
