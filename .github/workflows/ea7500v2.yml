@@ -5,7 +5,7 @@
 # Description: Build OpenWrt image with GitHub Actions
 #
 
-name: Build EA7500v1 Image
+name: Build EA7500v2 Image
 
 on:
   workflow_dispatch:
@@ -17,18 +17,18 @@ on:
     branches:
       - master
     paths:
-      - 'ea7500v1.config'
-      - '.github/workflows/ea7500v1.yml'
+      - 'ea7500v2.config'
+      - '.github/workflows/ea7500v2.yml'
 
 env:
-  DEVICE_NAME: EA7500v1
-  PROFILE: linksys_ea7500-v1
-  DEVICE_TARGET: ipq806x
-  DEVICE_SUB_TARGET: generic
-  CONFIG_FILE: ea7500v1.config
+  DEVICE_NAME: EA7500v2
+  PROFILE: linksys_ea7500-v2
+  DEVICE_TARGET: ramips
+  DEVICE_SUB_TARGET: mt7621
+  CONFIG_FILE: ea7500v2.config
   OPENWRT_VERSION: 19.07.4
   OPENWRT_URL: "https://downloads.openwrt.org/snapshots/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-8.4.0_musl_eabi.Linux-x86_64.tar.xz"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-8.4.0_musl.Linux-x86_64.tar.xz"
   BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
