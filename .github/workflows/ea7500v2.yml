@@ -8,6 +8,8 @@
 name: Build EA7500v2 Image
 
 on:
+  schedule:
+    - cron: '0 18 * * 0'
   workflow_dispatch:
     inputs:
       ssh:
@@ -113,7 +115,7 @@ jobs:
         mkdir -p builder/packages
         cp -v packages/* builder/packages
         cd builder
-        make image PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-sqm luci-app-ssr-plus luci-app-unbound luci-app-wireguard luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg vxlan -dnsmasq"
+        make image PACKAGES="acme-dnsapi avahi-daemon bash ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libustream-openssl luci luci-app-acme luci-app-passwall luci-app-sqm luci-app-ssr-plus luci-app-unbound luci-app-wireguard luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg vxlan -dnsmasq"
         cd bin/targets/*/*
         echo "::set-env name=FIRMWARE_PATH::$PWD"
 
