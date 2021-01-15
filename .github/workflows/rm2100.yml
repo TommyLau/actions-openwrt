@@ -1,0 +1,84 @@
+#
+# Copyright (c) 2020 Tommy Lau <http://tommy.net.cn/>
+#
+# https://github.com/TommyLau/actions-openwrt
+# Description: Build OpenWrt image with GitHub Actions
+#
+
+name: Build Redmi AC2100 Image
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'Access to SSH terminal'
+        default: 'true'
+  push:
+    branches:
+      - master
+    paths:
+      - 'rm2100.config'
+      - '.github/workflows/rm2100.yml'
+
+env:
+  DEVICE_NAME: REDMI-AC2100
+  PROFILE: redmi-router-ac2100
+  DEVICE_TARGET: ramips
+  DEVICE_SUB_TARGET: mt7621
+  CONFIG_FILE: rm2100.config
+  OPENWRT_VERSION: snapshots
+  OPENWRT_URL: "https://downloads.openwrt.org/snapshots/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-8.4.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
+  TIMEZONE: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Setup Build Environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx gcc-multilib g++-multilib
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TIMEZONE"
+        OPENWRT_URL=`eval echo "$OPENWRT_URL"`
+        SDK_URL=`eval echo "$SDK_URL"`
+        BUILDER_URL=`eval echo "$BUILDER_URL"`
+        echo "OPENWRT_URL=$OPENWRT_URL" >> $GITHUB_ENV
+        echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
+        echo "BUILDER_URL=$BUILDER_URL" >> $GITHUB_ENV
+
+    - name: Setup OpenWrt Image Builder
+      run: |
+        curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
+        mkdir builder
+        tar Jxvf builder.tar.xz -C builder --strip-components=1
+
+    - name: Build Image
+      run: |
+        cd builder
+        make image PACKAGES="acme-dnsapi avahi-daemon bash bind-host ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libustream-openssl luci luci-app-acme luci-app-sqm luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-lib-ipkg -dnsmasq"
+        cd bin/targets/*/*
+        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+
+    - name: Space Usage
+      if: (!cancelled())
+      run: df -hT
+
+    - name: Upload Firmware
+      uses: actions/upload-artifact@v2
+      with:
+        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        path: ${{ env.FIRMWARE_PATH }}/*.bin
