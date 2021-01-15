@@ -54,9 +54,9 @@ jobs:
         OPENWRT_URL=`eval echo "$OPENWRT_URL"`
         SDK_URL=`eval echo "$SDK_URL"`
         BUILDER_URL=`eval echo "$BUILDER_URL"`
-        echo "::set-env name=OPENWRT_URL::$OPENWRT_URL"
-        echo "::set-env name=SDK_URL::$SDK_URL"
-        echo "::set-env name=BUILDER_URL::$BUILDER_URL"
+        echo "OPENWRT_URL=$OPENWRT_URL" >> $GITHUB_ENV
+        echo "SDK_URL=SDK_URL" >> $GITHUB_ENV
+        echo "BUILDER_URL=BUILDER_URL" >> $GITHUB_ENV
 
     - name: Setup OpenWrt SDK
       run: |
@@ -95,7 +95,7 @@ jobs:
       run: |
         cd sdk
         make -j$(nproc) || make -j1 V=s || make -j1 V=sc
-        echo "::set-env name=BUILD_TIME::$(date +"%Y%m%d%H%M")"
+        echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
     - name: Setup OpenWrt Image Builder
       run: |
@@ -120,7 +120,7 @@ jobs:
         sed -i s/'23552k(ubi),25600k@0x6c0000(firmware)'/'120832k(ubi),122880k@0x6c0000(firmware)'/ target/linux/ar71xx/image/legacy.mk
         make image PACKAGES="acme-dnsapi avahi-daemon bash bind-host ca-certificates coreutils-nohup curl ddns-scripts_cloudflare.com-v4 dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun libuhttpd-openssl luci luci-app-acme luci-app-passwall luci-app-sqm luci-app-ssr-plus luci-app-unbound luci-app-wireguard luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-unbound-zh-cn luci-lib-ipkg vxlan -dnsmasq"
         cd bin/targets/*/*
-        echo "::set-env name=FIRMWARE_PATH::$PWD"
+        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
     - name: Space Usage
       if: (!cancelled())
