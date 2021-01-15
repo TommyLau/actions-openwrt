@@ -24,7 +24,7 @@ on:
 
 env:
   DEVICE_NAME: REDMI-AC2100
-  PROFILE: redmi-router-ac2100
+  PROFILE: xiaomi_redmi-router-ac2100
   DEVICE_TARGET: ramips
   DEVICE_SUB_TARGET: mt7621
   CONFIG_FILE: rm2100.config
