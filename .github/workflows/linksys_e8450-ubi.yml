@@ -26,7 +26,7 @@ env:
   DEVICE_SUB_TARGET: mt7622
   CONFIG_FILE: e8450.config
   OPENWRT_VERSION: snapshots
-  OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  OPENWRT_URL: "https://downloads.openwrt.org/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
   SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
   BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
@@ -70,7 +70,7 @@ jobs:
     - name: Build Image
       run: |
         cd builder
-        make image PACKAGES="curl ddns-scripts-cloudflare dnsmasq-full iperf3 luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn nebula tmux vim -dnsmasq"
+        make image PACKAGES="curl ddns-scripts-cloudflare dnsmasq-full iperf3 luci luci-app-acme luci-app-ddns luci-app-openvpn luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-openvpn-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn nebula tmux vim -dnsmasq"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
 
