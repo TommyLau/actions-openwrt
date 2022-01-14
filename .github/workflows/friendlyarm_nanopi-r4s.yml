@@ -84,4 +84,4 @@ jobs:
       with:
         name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
         path: |
-          ${{ env.FIRMWARE_PATH }}/*.itb
+          ${{ env.FIRMWARE_PATH }}/*.gz
