@@ -70,7 +70,7 @@ jobs:
     - name: Build Image
       run: |
         cd builder
-        make image PACKAGES="curl iperf3 nebula tmux vim block-mount default-settings-chn kmod-ipt-raw kmod-nf-nathelper kmod-nf-nathelper-extra luci luci-app-filetransfer luci-compat luci-lib-base luci-lib-fs luci-lib-ipkg"
+        make image PACKAGES="curl iperf3 ip6tables kmod-ipt-offload nebula odhcp6c odhcpd-ipv6only tmux vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
         echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
