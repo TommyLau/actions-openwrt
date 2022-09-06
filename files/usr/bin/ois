@@ -1,5 +1,5 @@
 #!/bin/sh
-# Version 0.3.0
+# Version 0.4.0
 # Updated: Sep 6, 2022
 
 if [ -z "$1" ]; then
@@ -161,15 +161,32 @@ uci set firewall.@defaults[0].forward='ACCEPT'
 uci set dhcp.@dnsmasq[0].rebind_protection='0'
 
 # Local domain
-#uci add_list dhcp.@dnsmasq[0].address='/test.lan/1.2.3.4'
-#uci del_list dhcp.@dnsmasq[0].address='/test.lan/1.2.3.4'
+COUNT=0
+ADDRESS=`echo "${JSON}" | jq -r ".addresses[${COUNT}]"`
+while [ "${ADDRESS}" != "null" ]; do
+    uci add_list dhcp.@dnsmasq[0].address="${ADDRESS}"
+    COUNT=$(expr $COUNT + 1)
+    ADDRESS=`echo "${JSON}" | jq -r ".addresses[${COUNT}]"`
+done
 
 # Static leasing
-#uci add dhcp host
-#uci set dhcp.@host[-1].name='HostName'
-#uci set dhcp.@host[-1].dns='1'
-#uci set dhcp.@host[-1].mac='00:11:22:33:44:55'
-#uci set dhcp.@host[-1].ip='192.168.1.2'
+COUNT=0
+NAME=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]"`
+while [ "${NAME}" != "null" ]; do
+    MAC=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][1]"`
+    IP=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][2]"`
+
+    uci add dhcp host
+    uci set dhcp.@host[-1].name="${NAME}"
+    uci set dhcp.@host[-1].dns='1'
+    uci set dhcp.@host[-1].mac="${MAC}"
+    uci set dhcp.@host[-1].ip="${IP}"
+
+    # Next item
+    COUNT=$(expr $COUNT + 1)
+    NAME=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]"`
+done
+
 
 # ------------------------------------------------------------
 # Nebula
