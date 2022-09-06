@@ -18,7 +18,7 @@ on:
       - master
     paths:
       - '.github/workflows/linksys_e8450-ubi.yml'
-      - 'files'
+      - 'files/**'
 
 env:
   DEVICE_NAME: E8450
