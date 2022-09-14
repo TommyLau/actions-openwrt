@@ -71,7 +71,7 @@ jobs:
     - name: Build Image
       run: |
         cd builder
-        make image FILES="../files" PACKAGES="coreutils-base64 curl ddns-scripts-cloudflare iperf3 ip6tables jq kmod-ipt-offload luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn nebula odhcp6c odhcpd-ipv6only tmux vim"
+        make image FILES="../files" PACKAGES="coreutils-base64 curl ddns-scripts-cloudflare iperf3 ip6tables jq kmod-ipt-offload luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-upnp-zh-cn nebula odhcp6c odhcpd-ipv6only tmux vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
         echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
