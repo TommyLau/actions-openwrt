@@ -1,61 +1,90 @@
 #!/bin/sh
-# Version 0.4.0
-# Updated: Sep 6, 2022
-
-if [ -z "$1" ]; then
-    echo -e "\nUsage: $0 <config_name>\n"
-    exit 1
-fi
-
-NAME=$1
+# Version 0.4.2
+# Updated: Sep 7, 2022
 
 # Get encrypted config file from server
-URL="https://tommy.net.cn/router/${NAME}.bin"
+URL="https://tommy.net.cn/router/$1.bin"
+CUSTOM_JSON="/tmp/$1.json"
+CUSTOM_BIN="/tmp/$1.bin"
+PRE_CONFIG="/etc/router/$1.bin"
 
-if [ -f /etc/router/${NAME}.bin ]; then
-    # Open encrypted config file if it's in the tmp directory
-    mv /etc/router/${NAME}.bin /tmp/config.bin
-else
-    if [ ! -f /tmp/config.bin ]; then
-        curl -SL "$URL" -o /tmp/config.bin 2> /dev/null
+# Search pattern for config file
+# 1. /tmp/config_name.json
+# 2. /tmp/config_name.bin
+# 3. /etc/router/config_name.bin
+# 4. https://tommy.net.cn/router/config_name.bin
+# 5. /tmp/config.json
+# 6. /tmp/config.bin
+
+if [ -z "$1" ]; then
+    # Check whether '/tmp/config.json' exist
+    if [ ! -s /tmp/config.json ]; then
+        # Check whether '/tmp/config.bin' exist
+        if [ ! -s /tmp/config.bin ]; then
+            # No 'config.bin', 'config.json', nor command line input
+            echo -e "\nUsage: $0 [config_name]\n"
+            echo -e "\tconfig_name\t\tDefault: /tmp/config.bin or /tmp/config.json\n"
+            exit 1
+        fi
+    else
+        USE_JSON=1
     fi
+else
+    # Use custom json config
+    if [ -s "${CUSTOM_JSON}" ]; then
+        # Check whether '/tmp/config_name.json' exist and greater than zero
+        cp "${CUSTOM_JSON}" /tmp/config.json
+        USE_JSON=1
+    elif [ -s "${CUSTOM_BIN}" ]; then
+        # Check whether '/tmp/config_name.bin' exist
+        cp "${CUSTOM_BIN}" /tmp/config.bin
+    elif [ -s "${PRE_CONFIG}" ]; then
+        # Check whether '/etc/router/config_name.bin' exist
+        cp "${PRE_CONFIG}" /tmp/config.bin
+    else
+        # Get config from Internet
+        curl -SL "$URL" -o /tmp/config.bin 2>/dev/null
 
-    if [ ! -f /tmp/config.bin ]; then
-        echo -e "\nCannot get config file from '${URL}'\n\nPlease copy config file to '/tmp/config.bin'\n"
-        exit 2
+        if [ ! -s /tmp/config.bin ]; then
+            echo -e "\nCannot get config file from '${URL}'\n\nPlease copy config file to '/tmp/config.bin'\n"
+            exit 2
+        fi
     fi
 fi
 
-if [ -z ${PASSWORD} ]; then
-    COMMAND="openssl enc -aes-256-cbc -d < /tmp/config.bin > /tmp/config.json 2> /dev/null"
-else
-    COMMAND="openssl enc -aes-256-cbc -d -pass env:PASSWORD < /tmp/config.bin > /tmp/config.json 2> /dev/null"
-fi
+# Decrypt data to JSON format
+if [ -z ${USE_JSON} ]; then
+    if [ -z "${PASSWORD}" ]; then
+        COMMAND="openssl enc -aes-256-cbc -d < /tmp/config.bin > /tmp/config.json 2> /dev/null"
+    else
+        COMMAND="openssl enc -aes-256-cbc -d -pass env:PASSWORD < /tmp/config.bin > /tmp/config.json 2> /dev/null"
+    fi
 
-if ! eval ${COMMAND}; then
-    echo -e "Cannot decrypt!!!\n"
-    exit 3
+    if ! eval ${COMMAND}; then
+        echo -e "Cannot decrypt!!!\n"
+        exit 3
+    fi
 fi
 
 # Parse JSON data
-JSON=`cat /tmp/config.json`
-NAME=`echo "${JSON}" | jq -r '.name'`
-PASSWORD=`echo "${JSON}" | jq -r '.password'`
-LAN_IP=`echo "${JSON}" | jq -r '.lan_ip'`
-SSH_KEY=`echo "${JSON}" | jq -r '.ssh_key' | base64 -d`
+JSON=$(cat /tmp/config.json)
+NAME=$(echo "${JSON}" | jq -r '.name')
+PASSWORD=$(echo "${JSON}" | jq -r '.password')
+LAN_IP=$(echo "${JSON}" | jq -r '.lan_ip')
 
 ## Optional Data
-WIFI_PASSWORD=`echo "${JSON}" | jq -r 'if .wifi_password == null then .password else .wifi_password end'`
-SSID_2G=`echo "${JSON}" | jq -r 'if .ssid_2g == null then .name + "_2G" else .ssid_2g end'`
-SSID_5G=`echo "${JSON}" | jq -r 'if .ssid_5g == null then .name else .ssid_5g end'`
+SSH_KEY=$(echo "${JSON}" | jq -r 'if .ssh_key == null then "" else .ssh_key end')
+WIFI_PASSWORD=$(echo "${JSON}" | jq -r 'if .wifi_password == null then .password else .wifi_password end')
+SSID_2G=$(echo "${JSON}" | jq -r 'if .ssid_2g == null then .name + "_2G" else .ssid_2g end')
+SSID_5G=$(echo "${JSON}" | jq -r 'if .ssid_5g == null then .name else .ssid_5g end')
 
-NEBULA_CA=`echo "${JSON}" | jq -r 'if .nebula_ca == null then "" else .nebula_ca end'`
-NEBULA_CRT=`echo "${JSON}" | jq -r 'if .nebula_crt == null then "" else .nebula_crt end'`
-NEBULA_KEY=`echo "${JSON}" | jq -r 'if .nebula_key == null then "" else .nebula_key end'`
-NEBULA_CFG=`echo "${JSON}" | jq -r 'if .nebula_config == null then "" else .nebula_config end'`
+NEBULA_CA=$(echo "${JSON}" | jq -r 'if .nebula_ca == null then "" else .nebula_ca end')
+NEBULA_CRT=$(echo "${JSON}" | jq -r 'if .nebula_crt == null then "" else .nebula_crt end')
+NEBULA_KEY=$(echo "${JSON}" | jq -r 'if .nebula_key == null then "" else .nebula_key end')
+NEBULA_CFG=$(echo "${JSON}" | jq -r 'if .nebula_config == null then "" else .nebula_config end')
 
-PPPOE_USERNAME=`echo "${JSON}" | jq -r 'if .pppoe_username == null then "" else .pppoe_username end'`
-PPPOE_PASSWORD=`echo "${JSON}" | jq -r 'if .pppoe_password == null then "" else .pppoe_password end'`
+PPPOE_USERNAME=$(echo "${JSON}" | jq -r 'if .pppoe_username == null then "" else .pppoe_username end')
+PPPOE_PASSWORD=$(echo "${JSON}" | jq -r 'if .pppoe_password == null then "" else .pppoe_password end')
 
 # ------------------------------------------------------------
 # General
@@ -72,7 +101,7 @@ uci set system.@system[0].zonename='Asia/Shanghai'
 uci set system.@system[0].timezone='CST-8'
 
 # Reboot daily
-echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >> /etc/crontabs/root
+echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
 /etc/init.d/cron enable
 
 # ------------------------------------------------------------
@@ -136,7 +165,9 @@ uci set dropbear.@dropbear[0].GatewayPorts='on'
 uci set uhttpd.main.redirect_https='on'
 
 # Add public key to authorized_keys
-echo "${SSH_KEY}" >> /etc/dropbear/authorized_keys
+if [ -n "${SSH_KEY}" ]; then
+    echo "${SSH_KEY}" | base64 -d >>/etc/dropbear/authorized_keys
+fi
 
 # ------------------------------------------------------------
 # Network
@@ -162,19 +193,19 @@ uci set dhcp.@dnsmasq[0].rebind_protection='0'
 
 # Local domain
 COUNT=0
-ADDRESS=`echo "${JSON}" | jq -r ".addresses[${COUNT}]"`
+ADDRESS=$(echo "${JSON}" | jq -r ".addresses[${COUNT}]")
 while [ "${ADDRESS}" != "null" ]; do
     uci add_list dhcp.@dnsmasq[0].address="${ADDRESS}"
     COUNT=$(expr $COUNT + 1)
-    ADDRESS=`echo "${JSON}" | jq -r ".addresses[${COUNT}]"`
+    ADDRESS=$(echo "${JSON}" | jq -r ".addresses[${COUNT}]")
 done
 
 # Static leasing
 COUNT=0
-NAME=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]"`
+NAME=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]")
 while [ "${NAME}" != "null" ]; do
-    MAC=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][1]"`
-    IP=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][2]"`
+    MAC=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][1]")
+    IP=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][2]")
 
     uci add dhcp host
     uci set dhcp.@host[-1].name="${NAME}"
@@ -184,20 +215,19 @@ while [ "${NAME}" != "null" ]; do
 
     # Next item
     COUNT=$(expr $COUNT + 1)
-    NAME=`echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]"`
+    NAME=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][0]")
 done
-
 
 # ------------------------------------------------------------
 # Nebula
 # ------------------------------------------------------------
 if [ -n "${NEBULA_CA}" ]; then
-    mkdir /etc/nebula > /dev/null
+    mkdir /etc/nebula >/dev/null
 
-    echo "${NEBULA_CA}" | base64 -d > /etc/nebula/ca.crt
-    echo "${NEBULA_CRT}" | base64 -d > /etc/nebula/host.crt
-    echo "${NEBULA_KEY}" | base64 -d > /etc/nebula/host.key
-    echo "${NEBULA_CFG}" | base64 -d > /etc/nebula/config.yml
+    echo "${NEBULA_CA}" | base64 -d >/etc/nebula/ca.crt
+    echo "${NEBULA_CRT}" | base64 -d >/etc/nebula/host.crt
+    echo "${NEBULA_KEY}" | base64 -d >/etc/nebula/host.key
+    echo "${NEBULA_CFG}" | base64 -d >/etc/nebula/config.yml
 
     /etc/init.d/nebula enable
 fi
@@ -217,3 +247,4 @@ fi
 # ------------------------------------------------------------
 uci commit
 reboot
+
