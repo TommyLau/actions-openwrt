@@ -1,15 +1,13 @@
 #
-# Copyright (c) 2020 Tommy Lau <http://tommy.net.cn/>
+# Copyright (c) 2022 Tommy Lau <http://tommy.net.cn/>
 #
 # https://github.com/TommyLau/actions-openwrt
 # Description: Build OpenWrt image with GitHub Actions
 #
 
-name: Build Redmi AC2100 Image
+name: Build Xiaomi Redmi AC2100 Image
 
 on:
-  schedule:
-    - cron: '0 18 * * 0'
   workflow_dispatch:
     inputs:
       ssh:
@@ -19,29 +17,30 @@ on:
     branches:
       - master
     paths:
-      - 'rm2100.config'
-      - '.github/workflows/rm2100.yml'
+      - '.github/workflows/xiaomi_redmi-router-ac2100.yml'
+      - 'files/**'
+
 
 env:
-  DEVICE_NAME: REDMI-AC2100
+  DEVICE_NAME: AC2100
   PROFILE: xiaomi_redmi-router-ac2100
   DEVICE_TARGET: ramips
   DEVICE_SUB_TARGET: mt7621
   CONFIG_FILE: rm2100.config
   OPENWRT_VERSION: snapshots
-  OPENWRT_URL: "https://downloads.openwrt.org/snapshots/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-8.4.0_musl.Linux-x86_64.tar.xz"
-  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
+  OPENWRT_URL: "https://downloads.immortalwrt.org/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/immortalwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.3.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/immortalwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Setup Build Environment
       env:
@@ -60,6 +59,10 @@ jobs:
         echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
         echo "BUILDER_URL=$BUILDER_URL" >> $GITHUB_ENV
 
+    - name: Setup Debug Session
+      uses: csexton/debugger-action@master
+      if: github.event.inputs.ssh == 'true'
+
     - name: Setup OpenWrt Image Builder
       run: |
         curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
@@ -69,7 +72,7 @@ jobs:
     - name: Build Image
       run: |
         cd builder
-        make image PACKAGES="acme-dnsapi avahi-daemon bash bind-host ca-certificates coreutils-nohup curl ddns-scripts-cloudflare dnsmasq-full ip-full ipset iptables iptables-mod-tproxy jsonfilter kmod-tun luci luci-app-acme luci-app-sqm luci-compat luci-i18n-base-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-lib-ipkg -dnsmasq"
+        make image FILES="../files" PACKAGES="coreutils-base64 curl ddns-scripts-cloudflare iperf3 ip6tables jq kmod-ipt-offload luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-upnp-zh-cn nebula odhcp6c odhcpd-ipv6only tmux vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
         echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -79,7 +82,8 @@ jobs:
       run: df -hT
 
     - name: Upload Firmware
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
-        path: ${{ env.FIRMWARE_PATH }}/*.bin
+        name: ImmortalWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        path: |
+          ${{ env.FIRMWARE_PATH }}/*.bin
