@@ -17,12 +17,12 @@ on:
     branches:
       - master
     paths:
-      - '.github/workflows/friendlyarm_nanopi-r4s.yml'
+      - '.github/workflows/friendlyarm_nanopi-r4s-enterprise.yml'
       - 'files/**'
 
 env:
   DEVICE_NAME: R4S
-  PROFILE: friendlyarm_nanopi-r4s
+  PROFILE: friendlyarm_nanopi-r4s-enterprise
   DEVICE_TARGET: rockchip
   DEVICE_SUB_TARGET: armv8
   CONFIG_FILE: r4s.config
