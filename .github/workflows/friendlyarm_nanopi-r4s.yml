@@ -39,7 +39,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Setup Build Environment
       env:
@@ -81,7 +81,7 @@ jobs:
       run: df -hT
 
     - name: Upload Firmware
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ImmortalWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
         path: |
