@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020 Tommy Lau <http://tommy.net.cn/>
+# Copyright (c) 2022 Tommy Lau <http://tommy.net.cn/>
 #
 # https://github.com/TommyLau/actions-openwrt
 # Description: Build OpenWrt image with GitHub Actions
@@ -18,6 +18,7 @@ on:
       - master
     paths:
       - '.github/workflows/friendlyarm_nanopi-r4s.yml'
+      - 'files/**'
 
 env:
   DEVICE_NAME: R4S
@@ -26,14 +27,14 @@ env:
   DEVICE_SUB_TARGET: armv8
   CONFIG_FILE: r4s.config
   OPENWRT_VERSION: snapshots
-  OPENWRT_URL: "https://downloads.openwrt.org/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
-  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
+  OPENWRT_URL: "https://downloads.immortalwrt.org/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/immortalwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.3.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/immortalwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
@@ -70,7 +71,7 @@ jobs:
     - name: Build Image
       run: |
         cd builder
-        make image PACKAGES="curl ddns-scripts-cloudflare dnsmasq-full iperf3 luci luci-app-acme luci-app-ddns luci-app-openvpn luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-openvpn-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn nebula openvpn-openssl tmux vim -dnsmasq"
+        make image FILES="../files" PACKAGES="coreutils-base64 curl ddns-scripts-cloudflare iperf3 ip6tables jq kmod-ipt-offload luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-upnp-zh-cn nebula odhcp6c odhcpd-ipv6only tmux vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
         echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -82,6 +83,6 @@ jobs:
     - name: Upload Firmware
       uses: actions/upload-artifact@v2
       with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        name: ImmortalWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
         path: |
           ${{ env.FIRMWARE_PATH }}/*.gz
