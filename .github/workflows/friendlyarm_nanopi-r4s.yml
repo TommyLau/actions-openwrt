@@ -94,6 +94,7 @@ jobs:
         luci-app-ddns \
         luci-app-openclash \
         luci-app-upnp \
+        luci-app-wol \
         luci-base \
         luci-compat \
         luci-i18n-acme-zh-cn \
@@ -102,6 +103,7 @@ jobs:
         luci-i18n-firewall-zh-cn \
         luci-i18n-opkg-zh-cn \
         luci-i18n-upnp-zh-cn \
+        luci-i18n-wol-zh-cn \
         nebula \
         ruby \
         ruby-yaml \
