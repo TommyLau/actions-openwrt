@@ -70,6 +70,7 @@ jobs:
 
     - name: Build Image
       run: |
+        curl --create-dirs -SLO --output-dir builder/packages "https://github.com/vernesong/OpenClash/releases/download/v0.45.59-beta/luci-app-openclash_0.45.59-beta_all.ipk"
         cd builder
         make image FILES="../files" PACKAGES=" \
         -dnsmasq \
@@ -82,6 +83,7 @@ jobs:
         dnsmasq-full \
         ip-full \
         iperf3 \
+        ipset \
         jq \
         kmod-inet-diag \
         kmod-nft-tproxy \
@@ -90,8 +92,10 @@ jobs:
         luci \
         luci-app-acme \
         luci-app-ddns \
+        luci-app-openclash \
         luci-app-upnp \
         luci-base \
+        luci-compat \
         luci-i18n-acme-zh-cn \
         luci-i18n-base-zh-cn \
         luci-i18n-ddns-zh-cn \
@@ -115,6 +119,6 @@ jobs:
     - name: Upload Firmware
       uses: actions/upload-artifact@v3
       with:
-        name: ImmortalWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
         path: |
           ${{ env.FIRMWARE_PATH }}/*.gz
