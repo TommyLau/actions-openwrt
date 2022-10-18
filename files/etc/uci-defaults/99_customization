@@ -1,0 +1,89 @@
+# ------------------------------------------------------------
+# General
+# ------------------------------------------------------------
+
+# Timezone
+uci set system.@system[0].zonename='Asia/Shanghai'
+uci set system.@system[0].timezone='CST-8'
+
+# Reboot daily
+echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
+/etc/init.d/cron enable
+
+# ------------------------------------------------------------
+# Wi-Fi
+# ------------------------------------------------------------
+
+devidx=0
+
+for _dev in /sys/class/ieee80211/*; do
+    [ -e "$_dev" ] || continue
+    # Enable radio
+    uci set wireless.@wifi-device[$devidx].disabled="0"
+
+    # China
+    uci set wireless.@wifi-device[$devidx].country='CN'
+
+    # MU-MIMO
+    uci set wireless.@wifi-device[$devidx].mu_beamformer='1'
+
+    ## Only enable 802.11k/v/r Wi-Fi roaming for 5GHz
+    band=$(uci get wireless.@wifi-device[$devidx].band)
+
+    if [ "$band" = "5g" ]; then
+        ## Wi-Fi 802.11k
+        uci set wireless.@wifi-iface[1].ieee80211k='1'
+        ## Wi-Fi 802.11v
+        uci set wireless.@wifi-iface[1].ieee80211v='1'
+        uci set wireless.@wifi-iface[1].time_advertisement='0'
+        ## Wi-Fi 802.11r
+        uci set wireless.@wifi-iface[1].ieee80211r='1'
+        uci set wireless.@wifi-iface[1].ft_over_ds='1'
+        uci set wireless.@wifi-iface[1].ft_psk_generate_local='1'
+    fi
+
+    devidx=$(($devidx + 1))
+done
+
+# ------------------------------------------------------------
+# SSH
+# ------------------------------------------------------------
+
+# Remove interface binding for SSH server
+uci del dropbear.@dropbear[0].Interface
+
+# Enable port forwarding for SSH server
+uci set dropbear.@dropbear[0].GatewayPorts='on'
+
+# Redirect to HTTPS
+uci set uhttpd.main.redirect_https='on'
+
+# ------------------------------------------------------------
+# Firewall
+# ------------------------------------------------------------
+
+# Enable IPv6 forward to access intranet devices with IPv6 address
+uci set firewall.@defaults[0].forward='ACCEPT'
+
+# ------------------------------------------------------------
+# DNS
+# ------------------------------------------------------------
+
+# Disable rebind protection to use domain for private ip address
+uci set dhcp.@dnsmasq[0].rebind_protection='0'
+
+# ------------------------------------------------------------
+# UPnP
+# ------------------------------------------------------------
+uci del upnpd.config.enable_upnp
+uci del upnpd.config.enable_natpmp
+uci del upnpd.config.secure_mode
+uci del upnpd.config.log_output
+uci set upnpd.config.enabled='1'
+
+# ------------------------------------------------------------
+# Save
+# ------------------------------------------------------------
+uci commit
+
+exit 0
