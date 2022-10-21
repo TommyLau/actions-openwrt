@@ -105,21 +105,26 @@ jobs:
         mkdir builder
         tar Jxvf builder.tar.xz -C builder --strip-components=1
 
-    - name: Upload Bin
-      uses: actions/upload-artifact@v3
-      with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_Bin_${{ env.BUILD_TIME }}
-        path: sdk/bin/*
+    #- name: Upload Bin
+    #  uses: actions/upload-artifact@v3
+    #  with:
+    #    name: OpenWrt_${{ env.DEVICE_NAME }}_Bin_${{ env.BUILD_TIME }}
+    #    path: sdk/bin/*
 
     - name: Build Image
       run: |
-        curl --create-dirs -SLO --output-dir builder/packages "https://github.com/vernesong/OpenClash/releases/download/v0.45.59-beta/luci-app-openclash_0.45.59-beta_all.ipk"
+        mkdir -p packages
 
         # Fullcone NAT
-        cp sdk/bin/packages/*/base/firewall4*.ipk builder/packages
-        cp sdk/bin/packages/*/base/libnftnl*.ipk builder/packages
-        cp sdk/bin/packages/*/base/nftables*.ipk builder/packages
-        cp bin/targets/*/*/packages/kmod-nft-fullcone*.ipk builder/packages
+        cp sdk/bin/targets/*/*/packages/kmod-nft-fullcone*.ipk packages
+        cp sdk/bin/packages/*/base/firewall4*.ipk packages
+        cp sdk/bin/packages/*/base/libnftnl*.ipk packages
+        cp sdk/bin/packages/*/base/nftables*.ipk packages
+
+        mkdir -p builder/packages
+        cp -v packages/* builder/packages
+
+        curl --create-dirs -SLO --output-dir builder/packages "https://github.com/vernesong/OpenClash/releases/download/v0.45.59-beta/luci-app-openclash_0.45.59-beta_all.ipk"
 
         cd builder
         make image FILES="../files" PACKAGES=" \
@@ -173,3 +178,9 @@ jobs:
         name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
         path: |
           ${{ env.FIRMWARE_PATH }}/*.gz
+
+    - name: Upload Packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
+        path: packages
