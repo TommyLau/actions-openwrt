@@ -78,6 +78,12 @@ jobs:
         cp ../patches/libnftnl-1.2.1/001-add-fullcone-expression-support.patch package/libnftnl
         cp ../patches/nftables-1.0.2/002-add-fullcone-expression-support.patch package/nftables
         cp ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4
+
+        # Use higher version, so that image builder won't download from Internet instead of using local packages
+        sed -i s/'$(AUTORELEASE)/99/' package/libnftnl/Makefile
+        sed -i s/'PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
+        sed -i s/'2022-10-14/2099-12-31/' package/firewall4/Makefile
+
         ./scripts/feeds update -i
         ./scripts/feeds install kmod-nft-fullcone
         ./scripts/feeds install libnftnl libmnl
