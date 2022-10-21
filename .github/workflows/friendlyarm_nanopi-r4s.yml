@@ -141,6 +141,7 @@ jobs:
         ipset \
         jq \
         kmod-inet-diag \
+        kmod-nft-fullcone \
         kmod-nft-tproxy \
         libcap \
         libcap-bin \
