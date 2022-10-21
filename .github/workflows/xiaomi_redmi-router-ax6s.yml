@@ -77,7 +77,7 @@ jobs:
         mv feeds/base/package/network/config/firewall4 package
         rsync -a ../patches/libnftnl-1.2.1/001-add-fullcone-expression-support.patch package/libnftnl/patches/
         rsync -a ../patches/nftables-1.0.2/002-add-fullcone-expression-support.patch package/nftables/patches/
-        rsync -a ../patches/firewall4/001-firewall4-2022-10-18-add-fullcone-support.patch package/firewall4/patches/
+        rsync -a ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4/patches/
 
         # Use higher version, so that image builder won't download from Internet instead of using local packages
         sed -i 's/$(AUTORELEASE)/99/' package/libnftnl/Makefile
