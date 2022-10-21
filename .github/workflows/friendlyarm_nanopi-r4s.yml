@@ -80,9 +80,8 @@ jobs:
         cp ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4
         ./scripts/feeds update -i
         ./scripts/feeds install kmod-nft-fullcone
-        ./scripts/feeds install libnftnl
-        ./scripts/feeds install jansson
-        ./scripts/feeds install nftables
+        ./scripts/feeds install libnftnl libmnl
+        ./scripts/feeds install nftables jansson
         ./scripts/feeds install firewall4
         cd ..
         [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
