@@ -63,7 +63,7 @@ jobs:
       run: |
         curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
         mkdir sdk
-        tar Jxvf sdk.tar.xz -C sdk --strip-components=1
+        tar xvf sdk.tar.xz -C sdk --strip-components=1
         mkdir -p sdk/staging_dir/host/bin
         ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
 
