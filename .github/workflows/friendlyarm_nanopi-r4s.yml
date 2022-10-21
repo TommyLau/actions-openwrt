@@ -167,6 +167,7 @@ jobs:
         luci-i18n-upnp-zh-cn \
         luci-i18n-wol-zh-cn \
         nebula \
+        nebula-service \
         ruby \
         ruby-yaml \
         tmux \
