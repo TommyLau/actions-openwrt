@@ -80,9 +80,11 @@ jobs:
         rsync -a ../patches/firewall4/001-firewall4-2022-10-18-add-fullcone-support.patch package/firewall4/patches/
 
         # Use higher version, so that image builder won't download from Internet instead of using local packages
-        sed -i s/'$(AUTORELEASE)/99/' package/libnftnl/Makefile
-        sed -i s/'PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
-        #sed -i s/'2022-10-14/2099-12-31/' package/firewall4/Makefile
+        sed -i 's/$(AUTORELEASE)/99/' package/libnftnl/Makefile
+        sed -i 's/PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
+        #sed -i 's/\$(PROJECT_GIT)\/project\/firewall4\.git/https:\/\/github.com\/TommyLau\/firewall4-with-fullcone\.git/' package/firewall4/Makefile
+        sed -i 's/2022-10-14/2022-10-18/' package/firewall4/Makefile
+        sed -i 's/$(AUTORELEASE)/99/' package/firewall4/Makefile
 
         ./scripts/feeds update -i
         ./scripts/feeds install kmod-nft-fullcone
