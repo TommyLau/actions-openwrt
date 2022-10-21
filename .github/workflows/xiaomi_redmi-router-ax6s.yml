@@ -18,6 +18,7 @@ on:
       - master
     paths:
       - '.github/workflows/xiaomi_redmi-router-ax6s.yml'
+      - 'configs/ax6s.config'
       - 'files/**'
 
 env:
@@ -25,10 +26,10 @@ env:
   PROFILE: xiaomi_redmi-router-ax6s
   DEVICE_TARGET: mediatek
   DEVICE_SUB_TARGET: mt7622
-  CONFIG_FILE: ax6s.config
-  OPENWRT_VERSION: 22.03.1
+  CONFIG_FILE: configs/ax6s.config
+  OPENWRT_VERSION: 22.03.2
   OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
   BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
@@ -58,9 +59,51 @@ jobs:
         echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
         echo "BUILDER_URL=$BUILDER_URL" >> $GITHUB_ENV
 
-    - name: Setup Debug Session
-      uses: csexton/debugger-action@master
-      if: github.event.inputs.ssh == 'true'
+    - name: Setup OpenWrt SDK
+      run: |
+        curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
+        mkdir sdk
+        tar Jxvf sdk.tar.xz -C sdk --strip-components=1
+        mkdir -p sdk/staging_dir/host/bin
+        ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
+
+    - name: Custom Configuration & Patch
+      run: |
+        cd sdk
+        ./scripts/feeds update -a
+        git clone https://github.com/TommyLau/nft-fullcone.git package/nft-fullcone
+        mv feeds/base/package/libs/libnftnl package
+        mv feeds/base/package/network/utils/nftables package
+        mv feeds/base/package/network/config/firewall4 package
+        cp ../patches/libnftnl-1.2.1/001-add-fullcone-expression-support.patch package/libnftnl
+        cp ../patches/nftables-1.0.2/002-add-fullcone-expression-support.patch package/nftables
+        cp ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4
+
+        # Use higher version, so that image builder won't download from Internet instead of using local packages
+        sed -i s/'$(AUTORELEASE)/99/' package/libnftnl/Makefile
+        sed -i s/'PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
+        sed -i s/'2022-10-14/2099-12-31/' package/firewall4/Makefile
+
+        ./scripts/feeds update -i
+        ./scripts/feeds install kmod-nft-fullcone
+        ./scripts/feeds install libnftnl libmnl
+        ./scripts/feeds install nftables jansson
+        ./scripts/feeds install firewall4
+        cd ..
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
+
+    - name: Download Packages
+      run: |
+        cd sdk
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls {} \;
+
+    - name: Build Custom Packages
+      run: |
+        cd sdk
+        make -j$(nproc) || make -j1 V=s || make -j1 V=sc
+        echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
     - name: Setup OpenWrt Image Builder
       run: |
@@ -68,9 +111,27 @@ jobs:
         mkdir builder
         tar Jxvf builder.tar.xz -C builder --strip-components=1
 
+    #- name: Upload Bin
+    #  uses: actions/upload-artifact@v3
+    #  with:
+    #    name: OpenWrt_${{ env.DEVICE_NAME }}_Bin_${{ env.BUILD_TIME }}
+    #    path: sdk/bin/*
+
     - name: Build Image
       run: |
+        mkdir -p packages
+
+        # Fullcone NAT
+        cp sdk/bin/targets/*/*/packages/kmod-nft-fullcone*.ipk packages
+        cp sdk/bin/packages/*/base/firewall4*.ipk packages
+        cp sdk/bin/packages/*/base/libnftnl*.ipk packages
+        cp sdk/bin/packages/*/base/nftables*.ipk packages
+
+        mkdir -p builder/packages
+        cp -v packages/* builder/packages
+
         curl --create-dirs -SLO --output-dir builder/packages "https://github.com/vernesong/OpenClash/releases/download/v0.45.59-beta/luci-app-openclash_0.45.59-beta_all.ipk"
+
         cd builder
         make image FILES="../files" PACKAGES=" \
         -dnsmasq \
@@ -86,6 +147,7 @@ jobs:
         ipset \
         jq \
         kmod-inet-diag \
+        kmod-nft-fullcone \
         kmod-nft-tproxy \
         libcap \
         libcap-bin \
@@ -112,7 +174,6 @@ jobs:
         vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-        echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
     - name: Space Usage
       if: (!cancelled())
@@ -125,3 +186,9 @@ jobs:
         path: |
           ${{ env.FIRMWARE_PATH }}/*.itb
           ${{ env.FIRMWARE_PATH }}/*.bin
+
+    - name: Upload Packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
+        path: packages
