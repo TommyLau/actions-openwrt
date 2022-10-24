@@ -1,16 +1,18 @@
 #!/bin/bash
 
 # Download OpenWrt Image Builder
-curl -SL "$BUILDER_URL" -o builder.tar.xz 2> /dev/null
+curl -SL "$BUILDER_URL" -o builder.tar.xz 2>/dev/null
 mkdir builder
-tar Jxvf builder.tar.xz -C builder --strip-components=1 > /dev/null
+tar Jxvf builder.tar.xz -C builder --strip-components=1 >/dev/null
 
 # Prepare custom packages
 mkdir -p builder/packages
-cp -v sdk/bin/targets/*/*/packages/kmod-nft-fullcone*.ipk builder/packages
-cp -v sdk/bin/packages/*/base/firewall4*.ipk builder/packages
-cp -v sdk/bin/packages/*/base/libnftnl*.ipk builder/packages
-cp -v sdk/bin/packages/*/base/nftables*.ipk builder/packages
+cp -v \
+    sdk/bin/targets/*/*/packages/kmod-nft-fullcone*.ipk \
+    sdk/bin/packages/*/base/firewall4*.ipk \
+    sdk/bin/packages/*/base/libnftnl*.ipk \
+    sdk/bin/packages/*/base/nftables*.ipk \
+    builder/packages
 
 # Build image with custom files & packages
 cd builder
@@ -43,4 +45,4 @@ vim"
 
 # Store firmware path for later firmware upload
 cd bin/targets/*/*
-echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+echo "FIRMWARE_PATH=$PWD" >>$GITHUB_ENV

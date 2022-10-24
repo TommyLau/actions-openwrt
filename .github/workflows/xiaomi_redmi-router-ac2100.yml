@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022 Tommy Lau <http://tommy.net.cn/>
+# Copyright (c) 22020-022 Tommy Lau <https://tommy.net.cn/>
 #
 # https://github.com/TommyLau/actions-openwrt
 # Description: Build OpenWrt image with GitHub Actions
@@ -22,11 +22,6 @@ env:
   PROFILE: xiaomi_redmi-router-ac2100
   DEVICE_TARGET: ramips
   DEVICE_SUB_TARGET: mt7621
-  OPENWRT_VERSION: 22.03.2
-  OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
-  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
-  TIMEZONE: Asia/Shanghai
 
 jobs:
   build:
