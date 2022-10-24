@@ -20,7 +20,8 @@ cd sdk
 # Patches
 # ------------------------------------------------------------
 # Fullcone NAT support for nftables
-git clone https://github.com/TommyLau/nft-fullcone.git package/nft-fullcone 2> /dev/null
+git clone https://github.com/TommyLau/nft-fullcone.git package/kmod-nft-fullcone
+find package/kmod-nft-fullcone
 mv -v feeds/base/package/libs/libnftnl package
 mv -v feeds/base/package/network/utils/nftables package
 mv -v feeds/base/package/network/config/firewall4 package
@@ -37,12 +38,11 @@ sed -i 's/2022-10-14/2099-12-31/' package/firewall4/Makefile
 ./scripts/feeds update -i 2> /dev/null
 
 # Install custom packages and dependencies
-./scripts/feeds install nft-fullcone 2> /dev/null
+./scripts/feeds install kmod-nft-fullcone 2> /dev/null
 ./scripts/feeds install libnftnl libmnl 2> /dev/null
 ./scripts/feeds install nftables jansson 2> /dev/null
 ./scripts/feeds install firewall4 2> /dev/null
 
 # Build custom packages
-make defconfig
 make -j$(nproc) || make -j1 V=s || make -j1 V=sc
 echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
