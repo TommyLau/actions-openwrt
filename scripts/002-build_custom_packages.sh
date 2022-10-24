@@ -44,5 +44,6 @@ CONFIG_FILE="${GITHUB_WORKSPACE}/configs/"$(echo ${DEVICE_NAME}.config | tr '[:u
 [ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE .config
 
 # Build custom packages
+make defconfig
 make -j$(nproc) || make -j1 V=s || make -j1 V=sc
 echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
