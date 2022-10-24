@@ -40,18 +40,7 @@ sed -i 's/2022-10-14/2099-12-31/' package/firewall4/Makefile
 ./scripts/feeds install firewall4 2> /dev/null
 
 # Update seed config
-CONFIG_FILE="$(echo $(
-    cd "$(dirname "$0")/.." >/dev/null 2>&1
-    pwd -P
-)/configs/${DEVICE_NAME}.config | tr '[:upper:]' '[:lower:]')"
-echo "----------------------------"
-echo ${CONFIG_FILE}
-echo $0
-echo $(dirname "$0")
-echo $(cd "$(dirname "$0")"; pwd -P)
-echo $(cd "$(dirname "$0")/.."; pwd -P)
-echo $(cd "$(dirname "$0")/../.."; pwd -P)
-echo "----------------------------"
+CONFIG_FILE="${GITHUB_WORKSPACE}/configs/"$(echo ${DEVICE_NAME}.config | tr '[:upper:]' '[:lower:]')
 [ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE .config
 
 # Build custom packages
