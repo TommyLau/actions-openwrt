@@ -46,6 +46,9 @@ CONFIG_FILE="$(echo $(
 )/configs/${DEVICE_NAME}.config | tr '[:upper:]' '[:lower:]')"
 echo "----------------------------"
 echo ${CONFIG_FILE}
+echo $0
+echo $(dirname "$0")
+echo $(cd "$(dirname "$0")/.."; pwd -P)
 echo "----------------------------"
 [ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE .config
 
