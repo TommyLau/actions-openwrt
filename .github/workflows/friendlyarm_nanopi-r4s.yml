@@ -132,35 +132,22 @@ jobs:
         mkdir -p builder/packages
         cp -v packages/* builder/packages
 
-        curl --create-dirs -SLO --output-dir builder/packages "https://github.com/vernesong/OpenClash/releases/download/v0.45.59-beta/luci-app-openclash_0.45.59-beta_all.ipk"
-
         cd builder
         make image FILES="../files" PACKAGES=" \
         -dnsmasq \
-        bash \
-        ca-certificates \
         coreutils-base64 \
-        coreutils-nohup \
         curl \
         ddns-scripts-cloudflare \
         dnsmasq-full \
-        ip-full \
         iperf3 \
-        ipset \
         jq \
-        kmod-inet-diag \
         kmod-nft-fullcone \
-        kmod-nft-tproxy \
-        libcap \
-        libcap-bin \
         luci \
         luci-app-acme \
         luci-app-ddns \
-        luci-app-openclash \
         luci-app-upnp \
         luci-app-wol \
         luci-base \
-        luci-compat \
         luci-i18n-acme-zh-cn \
         luci-i18n-base-zh-cn \
         luci-i18n-ddns-zh-cn \
@@ -170,10 +157,7 @@ jobs:
         luci-i18n-wol-zh-cn \
         nebula \
         nebula-service \
-        ruby \
-        ruby-yaml \
         tmux \
-        unzip \
         vim"
         cd bin/targets/*/*
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
