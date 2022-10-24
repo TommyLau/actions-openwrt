@@ -38,8 +38,9 @@ luci-i18n-firewall-zh-cn \
 luci-i18n-opkg-zh-cn \
 luci-i18n-upnp-zh-cn \
 luci-i18n-wol-zh-cn \
+luci-proto-nebula \
 nebula \
-nebula-service \
+nebula-proto \
 tmux \
 vim"
 
