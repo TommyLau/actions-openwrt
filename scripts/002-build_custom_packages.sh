@@ -44,6 +44,9 @@ CONFIG_FILE="$(echo $(
     cd "$(dirname "$0")/.." >/dev/null 2>&1
     pwd -P
 )/configs/${DEVICE_NAME}.config | tr '[:upper:]' '[:lower:]')"
+echo "----------------------------"
+echo ${CONFIG_FILE}
+echo "----------------------------"
 [ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE .config
 
 # Build custom packages
