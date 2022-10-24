@@ -7,9 +7,6 @@ tar Jxvf sdk.tar.xz -C sdk --strip-components=1 > /dev/null
 mkdir -p sdk/staging_dir/host/bin
 ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
 
-# Update seed config
-[ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE sdk/.config
-
 # Switch to SDK directory
 cd sdk
 
@@ -20,8 +17,7 @@ cd sdk
 # Patches
 # ------------------------------------------------------------
 # Fullcone NAT support for nftables
-git clone https://github.com/TommyLau/nft-fullcone.git package/kmod-nft-fullcone
-find package/kmod-nft-fullcone
+git clone https://github.com/TommyLau/nft-fullcone.git package/kmod-nft-fullcone 2> /dev/null
 mv -v feeds/base/package/libs/libnftnl package
 mv -v feeds/base/package/network/utils/nftables package
 mv -v feeds/base/package/network/config/firewall4 package
@@ -42,6 +38,9 @@ sed -i 's/2022-10-14/2099-12-31/' package/firewall4/Makefile
 ./scripts/feeds install libnftnl libmnl 2> /dev/null
 ./scripts/feeds install nftables jansson 2> /dev/null
 ./scripts/feeds install firewall4 2> /dev/null
+
+# Update seed config
+[ -e $CONFIG_FILE ] && cp -v $CONFIG_FILE .config
 
 # Build custom packages
 make -j$(nproc) || make -j1 V=s || make -j1 V=sc
