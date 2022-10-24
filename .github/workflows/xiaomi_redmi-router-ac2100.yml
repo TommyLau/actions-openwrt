@@ -8,29 +8,24 @@
 name: Build Xiaomi Redmi AC2100 Image
 
 on:
-  workflow_dispatch:
-    inputs:
-      ssh:
-        description: 'Access to SSH terminal'
-        default: 'true'
   push:
     branches:
       - master
     paths:
-      - '.github/workflows/xiaomi_redmi-router-ac2100.yml'
-      - 'files/**'
-
+      - ".github/workflows/xiaomi_redmi-router-ac2100.yml"
+      - "configs/ax6s.config"
+      - "files/**"
+      - "scripts/**"
 
 env:
   DEVICE_NAME: AC2100
   PROFILE: xiaomi_redmi-router-ac2100
   DEVICE_TARGET: ramips
   DEVICE_SUB_TARGET: mt7621
-  CONFIG_FILE: rm2100.config
-  OPENWRT_VERSION: snapshots
-  OPENWRT_URL: "https://downloads.immortalwrt.org/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
-  SDK_URL: "${OPENWRT_URL}/immortalwrt-sdk-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.3.0_musl.Linux-x86_64.tar.xz"
-  BUILDER_URL: "${OPENWRT_URL}/immortalwrt-imagebuilder-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
+  OPENWRT_VERSION: 22.03.2
+  OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
+  SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
+  BUILDER_URL: "${OPENWRT_URL}/openwrt-imagebuilder-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}.Linux-x86_64.tar.xz"
   TIMEZONE: Asia/Shanghai
 
 jobs:
@@ -39,51 +34,36 @@ jobs:
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Setup Build Environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx gcc-multilib g++-multilib
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TIMEZONE"
-        OPENWRT_URL=`eval echo "$OPENWRT_URL"`
-        SDK_URL=`eval echo "$SDK_URL"`
-        BUILDER_URL=`eval echo "$BUILDER_URL"`
-        echo "OPENWRT_URL=$OPENWRT_URL" >> $GITHUB_ENV
-        echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
-        echo "BUILDER_URL=$BUILDER_URL" >> $GITHUB_ENV
+      - name: Setup Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          ./scripts/001-setup_build_environment.sh
 
-    - name: Setup Debug Session
-      uses: csexton/debugger-action@master
-      if: github.event.inputs.ssh == 'true'
+      - name: Build Custom Packages
+        run: |
+          ./scripts/002-build_custom_packages.sh
 
-    - name: Setup OpenWrt Image Builder
-      run: |
-        curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
-        mkdir builder
-        tar Jxvf builder.tar.xz -C builder --strip-components=1
+      - name: Build Image
+        run: |
+          ./scripts/003-build_custom_image.sh
 
-    - name: Build Image
-      run: |
-        cd builder
-        make image FILES="../files" PACKAGES="coreutils-base64 curl ddns-scripts-cloudflare iperf3 ip6tables jq kmod-ipt-offload luci luci-app-acme luci-app-ddns luci-i18n-base-zh-cn luci-i18n-acme-zh-cn luci-i18n-ddns-zh-cn luci-i18n-firewall-zh-cn luci-i18n-opkg-zh-cn luci-i18n-upnp-zh-cn nebula odhcp6c odhcpd-ipv6only tmux vim"
-        cd bin/targets/*/*
-        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-        echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+      - name: Space Usage
+        if: (!cancelled())
+        run: df -hT
 
-    - name: Space Usage
-      if: (!cancelled())
-      run: df -hT
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+          path: |
+            ${{ env.FIRMWARE_PATH }}/*.bin
 
-    - name: Upload Firmware
-      uses: actions/upload-artifact@v3
-      with:
-        name: ImmortalWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
-        path: |
-          ${{ env.FIRMWARE_PATH }}/*.bin
+      - name: Upload Packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
+          path: builder/packages
