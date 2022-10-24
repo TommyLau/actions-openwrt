@@ -22,7 +22,6 @@ env:
   PROFILE: friendlyarm_nanopi-r4s
   DEVICE_TARGET: rockchip
   DEVICE_SUB_TARGET: armv8
-  CONFIG_FILE: configs/r4s.config
   OPENWRT_VERSION: 22.03.2
   OPENWRT_URL: "https://downloads.openwrt.org/releases/${OPENWRT_VERSION}/targets/${DEVICE_TARGET}/${DEVICE_SUB_TARGET}"
   SDK_URL: "${OPENWRT_URL}/openwrt-sdk-${OPENWRT_VERSION}-${DEVICE_TARGET}-${DEVICE_SUB_TARGET}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
