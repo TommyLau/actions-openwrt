@@ -8,11 +8,6 @@
 name: Build FriendlyARM NanoPi R4S 4GB LPDDR4 Image
 
 on:
-  workflow_dispatch:
-    inputs:
-      ssh:
-        description: 'Access to SSH terminal'
-        default: 'true'
   push:
     branches:
       - master
@@ -20,6 +15,7 @@ on:
       - '.github/workflows/friendlyarm_nanopi-r4s.yml'
       - 'configs/r4s.config'
       - 'files/**'
+      - 'scripts/**'
 
 env:
   DEVICE_NAME: R4S
@@ -46,121 +42,15 @@ jobs:
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install -y --no-install-recommends subversion build-essential libncurses5-dev zlib1g-dev gawk git ccache gettext libssl-dev xsltproc zip upx gcc-multilib g++-multilib
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TIMEZONE"
-        OPENWRT_URL=`eval echo "$OPENWRT_URL"`
-        SDK_URL=`eval echo "$SDK_URL"`
-        BUILDER_URL=`eval echo "$BUILDER_URL"`
-        echo "OPENWRT_URL=$OPENWRT_URL" >> $GITHUB_ENV
-        echo "SDK_URL=$SDK_URL" >> $GITHUB_ENV
-        echo "BUILDER_URL=$BUILDER_URL" >> $GITHUB_ENV
-
-    - name: Setup OpenWrt SDK
-      run: |
-        curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
-        mkdir sdk
-        tar Jxvf sdk.tar.xz -C sdk --strip-components=1
-        mkdir -p sdk/staging_dir/host/bin
-        ln -sf /usr/bin/upx sdk/staging_dir/host/bin/upx
-
-    - name: Custom Configuration & Patch
-      run: |
-        cd sdk
-        ./scripts/feeds update -a
-        git clone https://github.com/TommyLau/nft-fullcone.git package/nft-fullcone
-        mv feeds/base/package/libs/libnftnl package
-        mv feeds/base/package/network/utils/nftables package
-        mv feeds/base/package/network/config/firewall4 package
-        rsync -a ../patches/libnftnl-1.2.1/001-add-fullcone-expression-support.patch package/libnftnl/patches/
-        rsync -a ../patches/nftables-1.0.2/002-add-fullcone-expression-support.patch package/nftables/patches/
-        rsync -a ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4/patches/
-
-        # Use higher version, so that image builder won't download from Internet instead of using local packages
-        sed -i 's/$(AUTORELEASE)/99/' package/libnftnl/Makefile
-        sed -i 's/PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
-        #sed -i 's/\$(PROJECT_GIT)\/project\/firewall4\.git/https:\/\/github.com\/TommyLau\/firewall4-with-fullcone\.git/' package/firewall4/Makefile
-        sed -i 's/2022-10-14/2099-12-31/' package/firewall4/Makefile
-        #sed -i 's/$(AUTORELEASE)/99/' package/firewall4/Makefile
-
-        ./scripts/feeds update -i
-        ./scripts/feeds install kmod-nft-fullcone
-        ./scripts/feeds install libnftnl libmnl
-        ./scripts/feeds install nftables jansson
-        ./scripts/feeds install firewall4
-        cd ..
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE sdk/.config
-
-    - name: Download Packages
-      run: |
-        cd sdk
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec ls {} \;
+        ./scripts/001-setup_build_environment.sh
 
     - name: Build Custom Packages
       run: |
-        cd sdk
-        make -j$(nproc) || make -j1 V=s || make -j1 V=sc
-        echo "BUILD_TIME=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
-
-    - name: Setup OpenWrt Image Builder
-      run: |
-        curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
-        mkdir builder
-        tar Jxvf builder.tar.xz -C builder --strip-components=1
-
-    #- name: Upload Bin
-    #  uses: actions/upload-artifact@v3
-    #  with:
-    #    name: OpenWrt_${{ env.DEVICE_NAME }}_Bin_${{ env.BUILD_TIME }}
-    #    path: sdk/bin/*
+        ./scripts/002-build_custom_packages.sh
 
     - name: Build Image
       run: |
-        mkdir -p packages
-
-        # Fullcone NAT
-        cp sdk/bin/targets/*/*/packages/kmod-nft-fullcone*.ipk packages
-        cp sdk/bin/packages/*/base/firewall4*.ipk packages
-        cp sdk/bin/packages/*/base/libnftnl*.ipk packages
-        cp sdk/bin/packages/*/base/nftables*.ipk packages
-
-        mkdir -p builder/packages
-        cp -v packages/* builder/packages
-
-        cd builder
-        make image FILES="../files" PACKAGES=" \
-        -dnsmasq \
-        coreutils-base64 \
-        curl \
-        ddns-scripts-cloudflare \
-        dnsmasq-full \
-        iperf3 \
-        jq \
-        kmod-nft-fullcone \
-        luci \
-        luci-app-acme \
-        luci-app-ddns \
-        luci-app-upnp \
-        luci-app-wol \
-        luci-base \
-        luci-i18n-acme-zh-cn \
-        luci-i18n-base-zh-cn \
-        luci-i18n-ddns-zh-cn \
-        luci-i18n-firewall-zh-cn \
-        luci-i18n-opkg-zh-cn \
-        luci-i18n-upnp-zh-cn \
-        luci-i18n-wol-zh-cn \
-        nebula \
-        nebula-service \
-        tmux \
-        vim"
-        cd bin/targets/*/*
-        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+        ./scripts/003-build_custom_image.sh
 
     - name: Space Usage
       if: (!cancelled())
@@ -177,4 +67,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
-        path: packages
+        path: builder/packages
