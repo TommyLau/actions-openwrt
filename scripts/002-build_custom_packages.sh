@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download OpenWrt SDK
-curl -SL "${{ env.SDK_URL }}" -o sdk.tar.xz
+curl -SL "$SDK_URL" -o sdk.tar.xz
 mkdir sdk
 tar Jxvf sdk.tar.xz -C sdk --strip-components=1
 mkdir -p sdk/staging_dir/host/bin

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download OpenWrt Image Builder
-curl -SL "${{ env.BUILDER_URL }}" -o builder.tar.xz
+curl -SL "$BUILDER_URL" -o builder.tar.xz
 mkdir builder
 tar Jxvf builder.tar.xz -C builder --strip-components=1
 
