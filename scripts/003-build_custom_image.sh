@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Download OpenWrt Image Builder
-curl -SL "$BUILDER_URL" -o builder.tar.xz > /dev/null
+curl -SL "$BUILDER_URL" -o builder.tar.xz 2> /dev/null
 mkdir builder
 tar Jxvf builder.tar.xz -C builder --strip-components=1 > /dev/null
 
