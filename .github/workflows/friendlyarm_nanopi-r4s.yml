@@ -12,10 +12,10 @@ on:
     branches:
       - master
     paths:
-      - '.github/workflows/friendlyarm_nanopi-r4s.yml'
-      - 'configs/r4s.config'
-      - 'files/**'
-      - 'scripts/**'
+      - ".github/workflows/friendlyarm_nanopi-r4s.yml"
+      - "configs/r4s.config"
+      - "files/**"
+      - "scripts/**"
 
 env:
   DEVICE_NAME: R4S
@@ -34,36 +34,36 @@ jobs:
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Setup Build Environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        ./scripts/001-setup_build_environment.sh
+      - name: Setup Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          ./scripts/001-setup_build_environment.sh
 
-    - name: Build Custom Packages
-      run: |
-        ./scripts/002-build_custom_packages.sh
+      - name: Build Custom Packages
+        run: |
+          ./scripts/002-build_custom_packages.sh
 
-    - name: Build Image
-      run: |
-        ./scripts/003-build_custom_image.sh
+      - name: Build Image
+        run: |
+          ./scripts/003-build_custom_image.sh
 
-    - name: Space Usage
-      if: (!cancelled())
-      run: df -hT
+      - name: Space Usage
+        if: (!cancelled())
+        run: df -hT
 
-    - name: Upload Firmware
-      uses: actions/upload-artifact@v3
-      with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
-        path: |
-          ${{ env.FIRMWARE_PATH }}/*.gz
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+          path: |
+            ${{ env.FIRMWARE_PATH }}/*.gz
 
-    - name: Upload Packages
-      uses: actions/upload-artifact@v3
-      with:
-        name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
-        path: builder/packages
+      - name: Upload Packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
+          path: builder/packages
