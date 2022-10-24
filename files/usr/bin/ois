@@ -1,6 +1,8 @@
 #!/bin/sh
-# Version 0.4.2
-# Updated: Sep 7, 2022
+# OpenWrt Init Script
+# Version 0.5.0
+# Updated: Oct 25, 2022
+# Copyright (C) 2022 Tommy Lau <https://tommy.net.cn/>
 
 # Get encrypted config file from server
 URL="https://tommy.net.cn/router/$1.bin"
@@ -91,72 +93,79 @@ PPPOE_PASSWORD=$(echo "${JSON}" | jq -r 'if .pppoe_password == null then "" else
 # ------------------------------------------------------------
 
 # Name
+echo "Setup system for: ${NAME}"
 uci set system.@system[0].hostname="${NAME}"
 
 # Setup password
-echo -e "${PASSWORD}\n${PASSWORD}" | passwd root
+echo -e "${PASSWORD}\n${PASSWORD}" | passwd root 1>/dev/null 2>/dev/null
 
 # Timezone
 uci set system.@system[0].zonename='Asia/Shanghai'
 uci set system.@system[0].timezone='CST-8'
 
-# Reboot daily
-echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
-/etc/init.d/cron enable
+# Reboot daily - Enabled in new image builder firmware
+#echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
+#/etc/init.d/cron enable
 
 # ------------------------------------------------------------
 # Wi-Fi
 # ------------------------------------------------------------
 
-# Enable radio
-uci set wireless.radio0.disabled='0'
-uci set wireless.radio1.disabled='0'
+if uci get wireless 2>/dev/null; then
+    echo "Setup Wi-Fi: ${SSID_5G} / ${SSID_2G}"
+    # Enable radio - Enabled in new image builder firmware
+    #uci set wireless.radio0.disabled='0'
+    #uci set wireless.radio1.disabled='0'
 
-# China
-uci set wireless.radio0.country='CN'
-uci set wireless.radio1.country='CN'
+    # China - Enabled in new image builder firmware
+    #uci set wireless.radio0.country='CN'
+    #uci set wireless.radio1.country='CN'
 
-# Bandwith 40MHz for 2.4G, 160MHz for 5G
-uci set wireless.radio0.htmode='HT40'
-uci set wireless.radio1.htmode='HE160'
+    # Bandwith 40MHz for 2.4G, 160MHz for 5G
+    uci set wireless.radio0.htmode='HT40'
+    uci set wireless.radio1.htmode='HE160'
 
-# Channel
-uci set wireless.radio0.channel='6'
-uci set wireless.radio1.channel='52'
+    # Channel
+    uci set wireless.radio0.channel='6'
+    uci set wireless.radio1.channel='52'
 
-# MU-MIMO
-uci set wireless.radio0.mu_beamformer='1'
-uci set wireless.radio1.mu_beamformer='1'
+    # MU-MIMO - Enabled in new image builder firmware
+    #uci set wireless.radio0.mu_beamformer='1'
+    #uci set wireless.radio1.mu_beamformer='1'
 
-# Encryption - WPA2 CCMP (AES) for compatibility
-uci set wireless.default_radio0.encryption='psk2+ccmp'
-uci set wireless.default_radio1.encryption='psk2+ccmp'
+    # Encryption - WPA2 CCMP (AES) for compatibility
+    uci set wireless.default_radio0.encryption='psk2+ccmp'
+    uci set wireless.default_radio1.encryption='psk2+ccmp'
 
-# SSID
-uci set wireless.default_radio0.ssid="${SSID_2G}"
-uci set wireless.default_radio1.ssid="${SSID_5G}"
+    # SSID
+    uci set wireless.default_radio0.ssid="${SSID_2G}"
+    uci set wireless.default_radio1.ssid="${SSID_5G}"
 
-# Password
-uci set wireless.default_radio0.key="${WIFI_PASSWORD}"
-uci set wireless.default_radio1.key="${WIFI_PASSWORD}"
+    # Password
+    uci set wireless.default_radio0.key="${WIFI_PASSWORD}"
+    uci set wireless.default_radio1.key="${WIFI_PASSWORD}"
 
-## Only enable 802.11k/v/r Wi-Fi roaming for 5GHz
-## Wi-Fi 802.11k
-uci set wireless.default_radio1.ieee80211k='1'
-## Wi-Fi 802.11v
-uci set wireless.default_radio1.ieee80211v='1'
-uci set wireless.default_radio1.time_advertisement='0'
-## Wi-Fi 802.11r
-uci set wireless.default_radio1.ieee80211r='1'
-uci set wireless.default_radio1.ft_over_ds='1'
-uci set wireless.default_radio1.ft_psk_generate_local='1'
+    ## Only enable 802.11k/v/r Wi-Fi roaming for 5GHz
+    ## - Enabled in new image builder firmware
+    ## Wi-Fi 802.11k
+    #uci set wireless.default_radio1.ieee80211k='1'
+    ## Wi-Fi 802.11v
+    #uci set wireless.default_radio1.ieee80211v='1'
+    #uci set wireless.default_radio1.time_advertisement='0'
+    ## Wi-Fi 802.11r
+    #uci set wireless.default_radio1.ieee80211r='1'
+    #uci set wireless.default_radio1.ft_over_ds='1'
+    #uci set wireless.default_radio1.ft_psk_generate_local='1'
+
+fi
 
 # ------------------------------------------------------------
 # SSH
 # ------------------------------------------------------------
+echo "Setup SSH . . ."
 
 # Remove interface binding for SSH server
-uci del dropbear.@dropbear[0].Interface
+uci del dropbear.@dropbear[0].Interface 2>/dev/null
 
 # Enable port forwarding for SSH server
 uci set dropbear.@dropbear[0].GatewayPorts='on'
@@ -174,19 +183,31 @@ fi
 # ------------------------------------------------------------
 
 # Lan IP
-#uci del dhcp.lan.ra_slaac
+echo "Setup LAN: ${LAN_IP}"
 uci set network.lan.ipaddr="${LAN_IP}"
 
 # ------------------------------------------------------------
 # Firewall
 # ------------------------------------------------------------
+echo "Setup firewall . . ."
 
 # Enable IPv6 forward to access intranet devices with IPv6 address
 uci set firewall.@defaults[0].forward='ACCEPT'
 
+# Enable IPv4 UDP/4242 incoming traffic for Nebula
+# TODO: Change port from Nebula config.yml
+uci add firewall rule
+uci set firewall.@rule[-1].name='Allow-Nebula'
+uci set firewall.@rule[-1].family='ipv4'
+uci add_list firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].src='wan'
+uci set firewall.@rule[-1].dest_port='4242'
+uci set firewall.@rule[-1].target='ACCEPT'
+
 # ------------------------------------------------------------
 # DNS
 # ------------------------------------------------------------
+echo "Setup local domain & static leasing . . ."
 
 # Disable rebind protection to use domain for private ip address
 uci set dhcp.@dnsmasq[0].rebind_protection='0'
@@ -207,7 +228,7 @@ while [ "${NAME}" != "null" ]; do
     MAC=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][1]")
     IP=$(echo "${JSON}" | jq -r ".static_leases[${COUNT}][2]")
 
-    uci add dhcp host
+    uci add dhcp host >/dev/null
     uci set dhcp.@host[-1].name="${NAME}"
     uci set dhcp.@host[-1].dns='1'
     uci set dhcp.@host[-1].mac="${MAC}"
@@ -222,19 +243,52 @@ done
 # Nebula
 # ------------------------------------------------------------
 if [ -n "${NEBULA_CA}" ]; then
-    mkdir /etc/nebula >/dev/null
+    echo -n "Setup Nebula: "
+    mkdir /etc/nebula 2>/dev/null
+    NEBULA_CONFIG="/etc/nebula/config.yml"
 
     echo "${NEBULA_CA}" | base64 -d >/etc/nebula/ca.crt
     echo "${NEBULA_CRT}" | base64 -d >/etc/nebula/host.crt
     echo "${NEBULA_KEY}" | base64 -d >/etc/nebula/host.key
-    echo "${NEBULA_CFG}" | base64 -d >/etc/nebula/config.yml
+    echo "${NEBULA_CFG}" | base64 -d >${NEBULA_CONFIG}
 
-    /etc/init.d/nebula enable
+    if [ -n "$(opkg list-installed | grep nebula-proto)" ]; then
+        echo "nebula-proto"
+        parse_yaml() {
+            local prefix=$2
+            local s='[[:space:]]*' w='[a-zA-Z0-9_-]*' fs="$(echo @ | tr @ '\034' | tr -d '\015')"
+            sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+                -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
+                awk "-F$fs" '{
+                indent = length($1)/2;
+                vname[indent] = $2;
+                for (i in vname) {if (i > indent) {delete vname[i]}}
+                if (length($3) > 0) {
+                    vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+                    printf("%s%s%s=\"%s\"\n", "'$prefix'", vn, $2, $3);
+                }
+            }'
+        }
+
+        eval "$(parse_yaml "${NEBULA_CONFIG}" "yaml_")"
+
+        uci set network.${yaml_tun_dev}=interface
+        uci set network.${yaml_tun_dev}.proto="nebula"
+        uci set network.${yaml_tun_dev}.config_file="${NEBULA_CONFIG}"
+    elif [ -n "$(opkg list-installed | grep nebula-service)" ]; then
+        echo "nebula-service"
+        /etc/init.d/nebula enable
+    else
+        echo "nebula"
+        /etc/init.d/nebula enable
+    fi
 fi
 
 # ------------------------------------------------------------
 # PPPoE
 # ------------------------------------------------------------
+echo "Setup PPPoE . . ."
+
 if [ -n "${PPPOE_USERNAME}" ] && [ -n "${PPPOE_PASSWORD}" ]; then
     uci set network.wan.proto='pppoe'
     uci set network.wan.username="${PPPOE_USERNAME}"
@@ -245,6 +299,8 @@ fi
 # ------------------------------------------------------------
 # Save & Reboot
 # ------------------------------------------------------------
+echo "Save configuration . . ."
 uci commit
-reboot
 
+echo "Reboot"
+reboot
