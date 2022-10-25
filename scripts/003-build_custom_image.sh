@@ -23,6 +23,7 @@ coreutils-base64 \
 curl \
 ddns-scripts-cloudflare \
 dnsmasq-full \
+drill \
 iperf3 \
 jq \
 kmod-nft-fullcone \
