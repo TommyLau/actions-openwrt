@@ -1,6 +1,6 @@
 #!/bin/sh
 # OpenWrt Init Script
-# Version 0.5.0
+# Version 0.5.1
 # Updated: Oct 25, 2022
 # Copyright (C) 2022 Tommy Lau <https://tommy.net.cn/>
 
@@ -99,27 +99,12 @@ uci set system.@system[0].hostname="${NAME}"
 # Setup password
 echo -e "${PASSWORD}\n${PASSWORD}" | passwd root 1>/dev/null 2>/dev/null
 
-# Timezone
-uci set system.@system[0].zonename='Asia/Shanghai'
-uci set system.@system[0].timezone='CST-8'
-
-# Reboot daily - Enabled in new image builder firmware
-#echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
-#/etc/init.d/cron enable
-
 # ------------------------------------------------------------
 # Wi-Fi
 # ------------------------------------------------------------
 
 if uci get wireless 2>/dev/null; then
     echo "Setup Wi-Fi: ${SSID_5G} / ${SSID_2G}"
-    # Enable radio - Enabled in new image builder firmware
-    #uci set wireless.radio0.disabled='0'
-    #uci set wireless.radio1.disabled='0'
-
-    # China - Enabled in new image builder firmware
-    #uci set wireless.radio0.country='CN'
-    #uci set wireless.radio1.country='CN'
 
     # Bandwith 40MHz for 2.4G, 160MHz for 5G
     #uci set wireless.radio0.htmode='HT40'
@@ -129,13 +114,10 @@ if uci get wireless 2>/dev/null; then
     uci set wireless.radio0.channel='6'
     uci set wireless.radio1.channel='149'
 
-    # MU-MIMO - Enabled in new image builder firmware
-    #uci set wireless.radio0.mu_beamformer='1'
-    #uci set wireless.radio1.mu_beamformer='1'
-
     # Encryption - WPA2 CCMP (AES) for compatibility
     uci set wireless.default_radio0.encryption='psk2+ccmp'
-    uci set wireless.default_radio1.encryption='psk2+ccmp'
+    # Encryption - WPA3/WPA2 Mixed
+    uci set wireless.default_radio1.encryption='sae-mixed'
 
     # SSID
     uci set wireless.default_radio0.ssid="${SSID_2G}"
@@ -144,33 +126,12 @@ if uci get wireless 2>/dev/null; then
     # Password
     uci set wireless.default_radio0.key="${WIFI_PASSWORD}"
     uci set wireless.default_radio1.key="${WIFI_PASSWORD}"
-
-    ## Only enable 802.11k/v/r Wi-Fi roaming for 5GHz
-    ## - Enabled in new image builder firmware
-    ## Wi-Fi 802.11k
-    #uci set wireless.default_radio1.ieee80211k='1'
-    ## Wi-Fi 802.11v
-    #uci set wireless.default_radio1.ieee80211v='1'
-    #uci set wireless.default_radio1.time_advertisement='0'
-    ## Wi-Fi 802.11r
-    #uci set wireless.default_radio1.ieee80211r='1'
-    #uci set wireless.default_radio1.ft_over_ds='1'
-    #uci set wireless.default_radio1.ft_psk_generate_local='1'
 fi
 
 # ------------------------------------------------------------
 # SSH
 # ------------------------------------------------------------
 echo "Setup SSH . . ."
-
-# Remove interface binding for SSH server
-uci del dropbear.@dropbear[0].Interface 2>/dev/null
-
-# Enable port forwarding for SSH server
-uci set dropbear.@dropbear[0].GatewayPorts='on'
-
-# DO NOT Redirect to HTTPS to use luci-app-ttyd
-uci set uhttpd.main.redirect_https='off'
 
 # Add public key to authorized_keys
 if [ -n "${SSH_KEY}" ]; then
@@ -190,30 +151,9 @@ echo "Setup LAN: ${LAN_IP}"
 uci set network.lan.ipaddr="${LAN_IP}"
 
 # ------------------------------------------------------------
-# Firewall
-# ------------------------------------------------------------
-echo "Setup firewall . . ."
-
-# Enable IPv6 forward to access intranet devices with IPv6 address
-uci set firewall.@defaults[0].forward='ACCEPT'
-
-# Enable IPv4 UDP/4242 incoming traffic for Nebula
-# TODO: Change port from Nebula config.yml
-uci add firewall rule
-uci set firewall.@rule[-1].name='Allow-Nebula'
-uci set firewall.@rule[-1].family='ipv4'
-uci add_list firewall.@rule[-1].proto='udp'
-uci set firewall.@rule[-1].src='wan'
-uci set firewall.@rule[-1].dest_port='4242'
-uci set firewall.@rule[-1].target='ACCEPT'
-
-# ------------------------------------------------------------
 # DNS
 # ------------------------------------------------------------
 echo "Setup local domain & static leasing . . ."
-
-# Disable rebind protection to use domain for private ip address
-uci set dhcp.@dnsmasq[0].rebind_protection='0'
 
 # Local domain
 COUNT=0
@@ -255,14 +195,12 @@ if [ -n "${NEBULA_CA}" ]; then
     echo "${NEBULA_KEY}" | base64 -d >/etc/nebula/host.key
     echo "${NEBULA_CFG}" | base64 -d >${NEBULA_CONFIG}
 
-    if [ -n "$(opkg list-installed | grep nebula-proto)" ]; then
-        echo "nebula-proto"
-        parse_yaml() {
-            local prefix=$2
-            local s='[[:space:]]*' w='[a-zA-Z0-9_-]*' fs="$(echo @ | tr @ '\034' | tr -d '\015')"
-            sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
-                -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
-                awk "-F$fs" '{
+    parse_yaml() {
+        local prefix=$2
+        local s='[[:space:]]*' w='[a-zA-Z0-9_-]*' fs="$(echo @ | tr @ '\034' | tr -d '\015')"
+        sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+            -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p" "$1" |
+            awk "-F$fs" '{
                 indent = length($1)/2;
                 vname[indent] = $2;
                 for (i in vname) {if (i > indent) {delete vname[i]}}
@@ -271,20 +209,44 @@ if [ -n "${NEBULA_CA}" ]; then
                     printf("%s%s%s=\"%s\"\n", "'$prefix'", vn, $2, $3);
                 }
             }'
-        }
+    }
 
-        eval "$(parse_yaml "${NEBULA_CONFIG}" "yaml_")"
+    eval "$(parse_yaml "${NEBULA_CONFIG}" "yaml_")"
+
+    if [ -n "$(opkg list-installed | grep nebula-proto)" ]; then
+        echo "nebula-proto"
 
         uci set network.${yaml_tun_dev}=interface
         uci set network.${yaml_tun_dev}.proto="nebula"
         uci set network.${yaml_tun_dev}.config_file="${NEBULA_CONFIG}"
     elif [ -n "$(opkg list-installed | grep nebula-service)" ]; then
         echo "nebula-service"
+
         /etc/init.d/nebula enable
     else
         echo "nebula"
+
         /etc/init.d/nebula enable
     fi
+
+    # Enable IPv4 UDP/4242 incoming traffic for Nebula
+    uci add firewall rule
+    uci set firewall.@rule[-1].name='Allow-Nebula'
+
+    # Listen to IPv4 address only
+    if [ "${yaml_listen_host}" = "0.0.0.0" ]; then
+        uci set firewall.@rule[-1].family='ipv4'
+    fi
+
+    uci add_list firewall.@rule[-1].proto='udp'
+    uci set firewall.@rule[-1].src='wan'
+
+    # Change port from Nebula config.yml
+    if [ ! "${yaml_listen_port}" = "0" ]; then
+        uci set firewall.@rule[-1].dest_port="${yaml_listen_port}"
+    fi
+
+    uci set firewall.@rule[-1].target='ACCEPT'
 fi
 
 # ------------------------------------------------------------
