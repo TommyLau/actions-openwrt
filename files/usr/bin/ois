@@ -107,9 +107,6 @@ uci set system.@system[0].timezone='CST-8'
 #echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
 #/etc/init.d/cron enable
 
-# No login required for web terminal
-uci set ttyd.@ttyd[-1].command="sh"
-
 # ------------------------------------------------------------
 # Wi-Fi
 # ------------------------------------------------------------
