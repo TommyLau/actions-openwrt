@@ -176,6 +176,10 @@ uci set uhttpd.main.redirect_https='off'
 # Add public key to authorized_keys
 if [ -n "${SSH_KEY}" ]; then
     echo "${SSH_KEY}" | base64 -d >>/etc/dropbear/authorized_keys
+
+    # Disable password login for root
+    uci set dropbear.@dropbear[-1].PasswordAuth="off"
+    uci set dropbear.@dropbear[-1].RootPasswordAuth="off"
 fi
 
 # ------------------------------------------------------------
