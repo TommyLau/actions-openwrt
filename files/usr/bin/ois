@@ -1,7 +1,7 @@
 #!/bin/sh
 # OpenWrt Init Script
-# Version 0.5.1
-# Updated: Oct 25, 2022
+# Version 0.5.2
+# Updated: Oct 26, 2022
 # Copyright (C) 2022 Tommy Lau <https://tommy.net.cn/>
 
 # Get encrypted config file from server
@@ -116,8 +116,7 @@ if uci get wireless 2>/dev/null; then
 
     # Encryption - WPA2 CCMP (AES) for compatibility
     uci set wireless.default_radio0.encryption='psk2+ccmp'
-    # Encryption - WPA3/WPA2 Mixed
-    uci set wireless.default_radio1.encryption='sae-mixed'
+    uci set wireless.default_radio1.encryption='psk2+ccmp'
 
     # SSID
     uci set wireless.default_radio0.ssid="${SSID_2G}"
