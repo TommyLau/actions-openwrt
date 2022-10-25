@@ -7,8 +7,10 @@ uci set system.@system[0].zonename='Asia/Shanghai'
 uci set system.@system[0].timezone='CST-8'
 
 # Reboot daily
-echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
-/etc/init.d/cron enable
+if ! grep -q '/sbin/reboot' /etc/crontabs/root; then
+    echo "0 6 * * * sleep 70 && touch /etc/banner && /sbin/reboot" >>/etc/crontabs/root
+    /etc/init.d/cron enable
+fi
 
 # ------------------------------------------------------------
 # Wi-Fi
@@ -50,13 +52,13 @@ done
 # ------------------------------------------------------------
 
 # Remove interface binding for SSH server
-uci del dropbear.@dropbear[0].Interface
+uci del dropbear.@dropbear[0].Interface 2>/dev/null
 
 # Enable port forwarding for SSH server
 uci set dropbear.@dropbear[0].GatewayPorts='on'
 
-# Redirect to HTTPS
-uci set uhttpd.main.redirect_https='on'
+# DO NOT Redirect to HTTPS to use luci-app-ttyd
+uci set uhttpd.main.redirect_https='off'
 
 # ------------------------------------------------------------
 # Firewall
@@ -66,12 +68,14 @@ uci set uhttpd.main.redirect_https='on'
 uci set firewall.@defaults[0].forward='ACCEPT'
 
 # Allow SSH access from WAN
-uci add firewall rule
-uci set firewall.@rule[-1].name='Allow-SSH'
-uci add_list firewall.@rule[-1].proto='tcp'
-uci set firewall.@rule[-1].src='wan'
-uci set firewall.@rule[-1].dest_port='22'
-uci set firewall.@rule[-1].target='ACCEPT'
+if [ -z "$(uci show firewall | grep Allow-SSH)" ]; then
+    uci add firewall rule
+    uci set firewall.@rule[-1].name='Allow-SSH'
+    uci add_list firewall.@rule[-1].proto='tcp'
+    uci set firewall.@rule[-1].src='wan'
+    uci set firewall.@rule[-1].dest_port='22'
+    uci set firewall.@rule[-1].target='ACCEPT'
+fi
 
 # ------------------------------------------------------------
 # DNS
