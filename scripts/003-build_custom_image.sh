@@ -28,6 +28,7 @@ kmod-nft-fullcone \
 luci \
 luci-app-acme \
 luci-app-ddns \
+luci-app-ttyd \
 luci-app-upnp \
 luci-app-wol \
 luci-base \
@@ -36,6 +37,7 @@ luci-i18n-base-zh-cn \
 luci-i18n-ddns-zh-cn \
 luci-i18n-firewall-zh-cn \
 luci-i18n-opkg-zh-cn \
+luci-i18n-ttyd-zh-cn \
 luci-i18n-upnp-zh-cn \
 luci-i18n-wol-zh-cn \
 luci-proto-nebula \

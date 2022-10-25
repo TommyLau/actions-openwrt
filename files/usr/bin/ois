@@ -107,6 +107,9 @@ uci set system.@system[0].timezone='CST-8'
 #echo "0 6 * * * sleep 70 && touch /etc/banner && reboot" >>/etc/crontabs/root
 #/etc/init.d/cron enable
 
+# No login required for web terminal
+uci set ttyd.@ttyd[-1].command="sh"
+
 # ------------------------------------------------------------
 # Wi-Fi
 # ------------------------------------------------------------
@@ -170,8 +173,8 @@ uci del dropbear.@dropbear[0].Interface 2>/dev/null
 # Enable port forwarding for SSH server
 uci set dropbear.@dropbear[0].GatewayPorts='on'
 
-# Redirect to HTTPS
-uci set uhttpd.main.redirect_https='on'
+# DO NOT Redirect to HTTPS to use luci-app-ttyd
+uci set uhttpd.main.redirect_https='off'
 
 # Add public key to authorized_keys
 if [ -n "${SSH_KEY}" ]; then
