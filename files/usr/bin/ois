@@ -122,12 +122,12 @@ if uci get wireless 2>/dev/null; then
     #uci set wireless.radio1.country='CN'
 
     # Bandwith 40MHz for 2.4G, 160MHz for 5G
-    uci set wireless.radio0.htmode='HT40'
-    uci set wireless.radio1.htmode='HE160'
+    #uci set wireless.radio0.htmode='HT40'
+    #uci set wireless.radio1.htmode='HE160'
 
     # Channel
     uci set wireless.radio0.channel='6'
-    uci set wireless.radio1.channel='52'
+    uci set wireless.radio1.channel='149'
 
     # MU-MIMO - Enabled in new image builder firmware
     #uci set wireless.radio0.mu_beamformer='1'
@@ -156,7 +156,6 @@ if uci get wireless 2>/dev/null; then
     #uci set wireless.default_radio1.ieee80211r='1'
     #uci set wireless.default_radio1.ft_over_ds='1'
     #uci set wireless.default_radio1.ft_psk_generate_local='1'
-
 fi
 
 # ------------------------------------------------------------
