@@ -1,0 +1,99 @@
+#!/bin/sh
+# OpenWrt Init Script - AP Setup
+# Version 0.1.0
+# Updated: Oct 27, 2022
+# Copyright (C) 2022 Tommy Lau <https://tommy.net.cn/>
+
+. /lib/functions.sh
+
+handle_device_add() {
+    local device="$1"
+    local lan_device="$2"
+    if [ "$(uci get network.$device.name 2>/dev/null)" == "${lan_device}" ] && [ -z "$(uci get network.$device.ports 2>/dev/null | grep ${WAN_DEVICE})" ]; then
+        echo "Add WAN port [${WAN_DEVICE}] to [${lan_device}]"
+        uci add_list network.$device.ports="${WAN_DEVICE}"
+    fi
+}
+
+handle_device_remove() {
+    local device="$1"
+    if [ "$(uci get network.$device.name 2>/dev/null)" == "${WAN_DEVICE}" ]; then
+        echo "Remove WAN device: ${WAN_DEVICE}"
+        uci del network.$device
+    fi
+}
+
+handle_zone_add() {
+    local zone="$1"
+    if [ "$(uci get firewall.$zone.name 2>/dev/null)" == "lan" ] && [ -z "$(uci get firewall.$zone.network 2>/dev/null | grep lan6)" ]; then
+        echo "Add interface 'lan6' to firewall zone 'lan' . . ."
+        uci add_list firewall.$zone.network='lan6'
+    fi
+}
+
+handle_zone_remove() {
+    local zone="$1"
+    if [ "$(uci get firewall.$zone.name 2>/dev/null)" == "wan" ]; then
+        echo "Remove $(uci get firewall.$zone.network) from firewall zone 'wan' . . ."
+        uci del firewall.$zone.network
+    fi
+}
+
+# Get current WAN device
+WAN_DEVICE="$(uci get network.wan.device 2>/dev/null)"
+LAN_DEVICE="$(uci get network.lan.device 2>/dev/null)"
+
+# Exit if not WAN device is found
+if [ -z "${WAN_DEVICE}" ]; then
+    echo "Cannot find WAN device, exit . . ."
+    exit 1
+fi
+
+# --------------------------------------------------------------------------------
+# Network
+# --------------------------------------------------------------------------------
+config_load network
+
+# Add WAN to bridge br-lan
+config_foreach handle_device_add device ${LAN_DEVICE}
+
+# Remove WAN device
+config_foreach handle_device_remove device
+
+# Remove LAN & WAN interfaces
+echo "Remove LAN & WAN interfaces . . ."
+uci del network.lan
+uci del network.wan
+uci del network.wan6
+
+# Add a LAN interface with DHCP
+# !NOTICE! The AP WILL NOT get an IP if no upstream DHCP is provided!
+echo "Create LAN & LAN6 interface . . ."
+uci set network.lan=interface
+uci set network.lan.device="${LAN_DEVICE}"
+uci set network.lan.proto="dhcp"
+uci set network.lan6=interface
+uci set network.lan6.device="${LAN_DEVICE}"
+uci set network.lan6.proto="dhcpv6"
+
+# --------------------------------------------------------------------------------
+# Firewall
+# --------------------------------------------------------------------------------
+config_load firewall
+
+# Add LAN6 to firewall zone LAN
+config_foreach handle_zone_add zone
+
+# Remove WAN device
+config_foreach handle_zone_remove zone
+
+# Disable
+echo "Disable firewall SYN-flood protection . . ."
+uci set firewall.@defaults[0].syn_flood=0
+
+echo "Saving configuration . . ."
+uci commit network
+uci commit firewall
+
+echo "Done!"
+# reboot
