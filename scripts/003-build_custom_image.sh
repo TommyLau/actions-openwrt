@@ -45,6 +45,7 @@ luci-i18n-wol-zh-cn \
 luci-proto-nebula \
 nebula \
 nebula-proto \
+shadowsocks-libev-ss-server \
 tmux \
 vim"
 
