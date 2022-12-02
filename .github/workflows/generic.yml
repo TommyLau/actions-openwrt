@@ -1,0 +1,66 @@
+#
+# Copyright (c) 2020-2022 Tommy Lau <https://tommy.net.cn/>
+#
+# https://github.com/TommyLau/actions-openwrt
+# Description: Build OpenWrt image with GitHub Actions
+#
+
+name: Build Generic x86/64 Image
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/generic.yml"
+      - "configs/generic.config"
+      - "files/**"
+      - "scripts/**"
+
+env:
+  DEVICE_NAME: Generic
+  PROFILE: generic
+  DEVICE_TARGET: x86
+  DEVICE_SUB_TARGET: 64
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          ./scripts/001-setup_build_environment.sh
+
+      - name: Build Custom Packages
+        run: |
+          ./scripts/002-build_custom_packages.sh
+
+      - name: Build Image
+        run: |
+          ./scripts/003-build_custom_image.sh
+
+      - name: Space Usage
+        if: (!cancelled())
+        run: df -hT
+
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
+          path: |
+            ${{ env.FIRMWARE_PATH }}/*.gz
+            ${{ env.FIRMWARE_PATH }}/*.tar.gz
+            ${{ env.FIRMWARE_PATH }}/*.bin
+
+      - name: Upload Packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
+          path: builder/packages
