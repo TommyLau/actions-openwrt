@@ -18,7 +18,7 @@ cp -v \
 cd builder
 make image FILES="../files" PACKAGES=" \
 -dnsmasq \
-acme-dnsapi \
+acme-acmesh-dnsapi \
 coreutils-base64 \
 curl \
 ddns-scripts-cloudflare \

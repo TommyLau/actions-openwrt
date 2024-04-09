@@ -21,14 +21,14 @@ git clone https://github.com/TommyLau/nft-fullcone.git package/kmod-nft-fullcone
 mv -v feeds/base/package/libs/libnftnl package
 mv -v feeds/base/package/network/utils/nftables package
 mv -v feeds/base/package/network/config/firewall4 package
-rsync -a ../patches/libnftnl-1.2.1/001-add-fullcone-expression-support.patch package/libnftnl/patches/
-rsync -a ../patches/nftables-1.0.2/002-add-fullcone-expression-support.patch package/nftables/patches/
-rsync -a ../patches/firewall4/001-firewall4-2022-10-14-add-fullcone-support.patch package/firewall4/patches/
+rsync -a ../patches/libnftnl-1.2.6/001-add-fullcone-expression-support.patch package/libnftnl/patches/
+rsync -a ../patches/nftables-1.0.8/002-add-fullcone-expression-support.patch package/nftables/patches/
+rsync -a ../patches/firewall4/001-firewall4-2023-09-01-add-fullcone-support.patch package/firewall4/patches/
 
 # Use higher version, so that image builder won't download from Internet instead of using local packages
-sed -i 's/$(AUTORELEASE)/99/' package/libnftnl/Makefile
-sed -i 's/PKG_RELEASE:=2.1/PKG_RELEASE:=99/' package/nftables/Makefile
-sed -i 's/2022-10-14/2099-12-31/' package/firewall4/Makefile
+sed -i 's/PKG_RELEASE:=1/PKG_RELEASE:=99/' package/libnftnl/Makefile
+sed -i 's/PKG_RELEASE:=1/PKG_RELEASE:=99/' package/nftables/Makefile
+sed -i 's/PKG_RELEASE:=1/PKG_RELEASE:=99/' package/firewall4/Makefile
 
 # Reindex feeds for pathces
 ./scripts/feeds update -i 2>/dev/null
