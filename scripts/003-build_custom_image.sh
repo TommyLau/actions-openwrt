@@ -12,6 +12,7 @@ cp -v \
     sdk/bin/packages/*/base/firewall4*.ipk \
     sdk/bin/packages/*/base/libnftnl*.ipk \
     sdk/bin/packages/*/base/nftables*.ipk \
+    sdk/bin/packages/*/base/stun-client*.ipk \
     builder/packages
 
 # Build image with custom files & packages
