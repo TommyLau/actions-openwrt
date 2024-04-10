@@ -16,11 +16,16 @@ cd sdk
 # ------------------------------------------------------------
 # Patches
 # ------------------------------------------------------------
+# Stun client for fullcone NAT test
+git clone https://github.com/TommyLau/stun.git package/network/stun 2>/dev/null
+
 # Fullcone NAT support for nftables
 git clone https://github.com/TommyLau/nft-fullcone.git package/kmod-nft-fullcone 2>/dev/null
+
 mv -v feeds/base/package/libs/libnftnl package
 mv -v feeds/base/package/network/utils/nftables package
 mv -v feeds/base/package/network/config/firewall4 package
+
 rsync -a ../patches/libnftnl-1.2.6/001-add-fullcone-expression-support.patch package/libnftnl/patches/
 rsync -a ../patches/nftables-1.0.8/002-add-fullcone-expression-support.patch package/nftables/patches/
 rsync -a ../patches/firewall4/001-firewall4-2023-09-01-add-fullcone-support.patch package/firewall4/patches/
@@ -34,6 +39,7 @@ sed -i 's/PKG_RELEASE:=1/PKG_RELEASE:=99/' package/firewall4/Makefile
 ./scripts/feeds update -i 2>/dev/null
 
 # Install custom packages and dependencies
+./scripts/feeds install stun-client 2>/dev/null
 ./scripts/feeds install kmod-nft-fullcone 2>/dev/null
 ./scripts/feeds install libnftnl libmnl 2>/dev/null
 ./scripts/feeds install nftables jansson 2>/dev/null

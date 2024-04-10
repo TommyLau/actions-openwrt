@@ -45,7 +45,10 @@ luci-i18n-wol-zh-cn \
 luci-proto-nebula \
 nebula \
 nebula-proto \
+openssh-sftp-server \
+rsync \
 shadowsocks-libev-ss-server \
+stun-client \
 tmux \
 vim"
 

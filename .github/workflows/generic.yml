@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2022 Tommy Lau <https://tommy.net.cn/>
+# Copyright (c) 2020-2024 Tommy Lau <https://tommy.net.cn/>
 #
 # https://github.com/TommyLau/actions-openwrt
 # Description: Build OpenWrt image with GitHub Actions
@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Build Environment
         env:
@@ -51,7 +51,7 @@ jobs:
         run: df -hT
 
       - name: Upload Firmware
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: OpenWrt_${{ env.DEVICE_NAME }}_${{ env.BUILD_TIME }}
           path: |
@@ -60,7 +60,7 @@ jobs:
             ${{ env.FIRMWARE_PATH }}/*.bin
 
       - name: Upload Packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: OpenWrt_${{ env.DEVICE_NAME }}_IPK_${{ env.BUILD_TIME }}
           path: builder/packages
