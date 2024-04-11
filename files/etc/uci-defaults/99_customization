@@ -23,8 +23,8 @@ for _dev in /sys/class/ieee80211/*; do
     # Enable radio
     uci set wireless.@wifi-device[$devidx].disabled="0"
 
-    # China
-    uci set wireless.@wifi-device[$devidx].country='CN'
+    # Set Wi-Fi country to US for stronger singal power
+    uci set wireless.@wifi-device[$devidx].country='US'
 
     # MU-MIMO
     uci set wireless.@wifi-device[$devidx].mu_beamformer='1'
