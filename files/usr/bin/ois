@@ -1,8 +1,8 @@
 #!/bin/sh
 # OpenWrt Init Script
-# Version 0.5.2
-# Updated: Oct 26, 2022
-# Copyright (C) 2022 Tommy Lau <https://tommy.net.cn/>
+# Version 0.5.3
+# Updated: Apr 11, 2024
+# Copyright (C) 2022-2024 Tommy Lau <https://tommy.net.cn/>
 
 # Get encrypted config file from server
 URL="https://tommy.net.cn/router/$1.bin"
@@ -246,6 +246,9 @@ if [ -n "${NEBULA_CA}" ]; then
     fi
 
     uci set firewall.@rule[-1].target='ACCEPT'
+
+    # Allow Nebula incoming traffic
+    uci set firewall.@defaults[0].input='ACCEPT'
 fi
 
 # ------------------------------------------------------------
